@@ -4,6 +4,10 @@ A simple command line tool for text to image generation, using OpenAI's CLIP and
 
 <a href="https://twitter.com/advadnoun">Ryan Murdock</a> has done it again, combining CLIP and the generator from a BigGAN. This repository wraps up his work so it is easily accessible to anyone who owns a GPU.
 
+Original notebook [![Open In Colab][colab-badge]][colab-notebook]
+
+[colab-notebook]: <colab.research.google.com/drive/1NCceX2mbiKOSlAd_o7IU7nA9UskKN5WR?usp=sharing>
+
 ## Citations
 
 ```bibtex
