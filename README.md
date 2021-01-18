@@ -1,10 +1,14 @@
-<img src="./samples/artificial_intelligence.png"></img>
+<img src="./samples/artificial_intelligence.png" width="384px"></img>
 
 *artificial intelligence*
 
-<img src="./samples/cosmic_love.png"></img>
+<img src="./samples/cosmic_love.png" width="384px"></img>
 
 *cosmic love*
+
+<img src="./samples/fire_in_the_sky.png"></img>
+
+*fire in the sky*
 
 ## Big Sleep
 
