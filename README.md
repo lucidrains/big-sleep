@@ -43,6 +43,9 @@ $ imagine_big 'a pyramid made of ice'
 
 That's it. Imagined images will be saved to whereever the command is invoked
 
+You can set the number of latents to optimize over by setting `--num-latents`. Default is at `32`
+
+
 ## Advanced
 
 You can invoke this in code with

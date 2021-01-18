@@ -116,7 +116,7 @@ class Imagine(nn.Module):
         *,
         lr = .07,
         num_latents = 32,
-        gradient_accumulate_every = 4,
+        gradient_accumulate_every = 1,
         save_every = 50,
         image_width = 512,
         epochs = 20,
