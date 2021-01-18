@@ -1,3 +1,11 @@
+<img src="./samples/artificial_intelligence.png"></img>
+
+*artificial intelligence*
+
+<img src="./samples/cosmic_love.png"></img>
+
+*cosmic love*
+
 ## Big Sleep
 
 A simple command line tool for text to image generation, using OpenAI's CLIP and a BigGAN.
@@ -22,6 +30,24 @@ $ imagine_big 'a pyramid made of ice'
 ```
 
 That's it. Imagined images will be saved to whereever the command is invoked
+
+## Advanced
+
+You can invoke this in code with
+
+```python
+from big_sleep import Imagine
+
+train = Imagine(
+    text = 'fire in the sky',
+    num_latents = 32,
+    lr = 5e-2,
+    save_every = 25,
+    save_progress = True
+)
+
+train()
+```
 
 ## Citations
 
