@@ -9,6 +9,20 @@ Original notebook [![Open In Colab][colab-badge]][colab-notebook]
 [colab-notebook]: <https://colab.research.google.com/drive/1NCceX2mbiKOSlAd_o7IU7nA9UskKN5WR?usp=sharing>
 [colab-badge]: <https://colab.research.google.com/assets/colab-badge.svg>
 
+## Install
+
+```bash
+$ pip install big-sleep
+```
+
+## Usage
+
+```bash
+$ imagine_big 'a pyramid made of ice'
+```
+
+That's it. Imagined images will be saved to whereever the command is invoked
+
 ## Citations
 
 ```bibtex
