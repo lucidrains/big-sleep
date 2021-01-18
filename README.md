@@ -2,19 +2,24 @@
 
 *artificial intelligence*
 
-<img src="./samples/cosmic_love.png" width="384px"></img>
+<img src="./samples/cosmic_love_and_attention.png" width="384px"></img>
 
-*cosmic love*
+*cosmic love and attention*
 
-<img src="./samples/fire_in_the_sky.png"></img>
+<img src="./samples/fire_in_the_sky.png" width="384px"></img>
 
 *fire in the sky*
 
+<img src="./samples/a_pyramid_made_of_ice.png" width="384px"></img>
+
+*a pyramid made of ice*
+
+
 ## Big Sleep
 
-A simple command line tool for text to image generation, using OpenAI's CLIP and a BigGAN.
+A simple command line tool for text to image generation, using OpenAI's <a href="https://github.com/openai/CLIP">CLIP</a> and a <a href="https://arxiv.org/abs/1809.11096">BigGAN</a>.
 
-<a href="https://twitter.com/advadnoun">Ryan Murdock</a> has done it again, combining CLIP and the generator from a BigGAN. This repository wraps up his work so it is easily accessible to anyone who owns a GPU.
+<a href="https://twitter.com/advadnoun">Ryan Murdock</a> has done it again, combining CLIP and the generator from a BigGAN! This repository wraps up his work so it is easily accessible to anyone who owns a GPU.
 
 Original notebook [![Open In Colab][colab-badge]][colab-notebook]
 
