@@ -6,7 +6,7 @@ A simple command line tool for text to image generation, using OpenAI's CLIP and
 
 Original notebook [![Open In Colab][colab-badge]][colab-notebook]
 
-[colab-notebook]: <colab.research.google.com/drive/1NCceX2mbiKOSlAd_o7IU7nA9UskKN5WR?usp=sharing>
+[colab-notebook]: <https://colab.research.google.com/drive/1NCceX2mbiKOSlAd_o7IU7nA9UskKN5WR?usp=sharing>
 [colab-badge]: <https://colab.research.google.com/assets/colab-badge.svg>
 
 ## Citations
