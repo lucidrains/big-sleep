@@ -18,6 +18,10 @@
 
 *a lonely house in the woods*
 
+<img src="./samples/marriage_in_the_mountains.png" width="384px"></img>
+
+*marriage in the mountains*
+
 ## Big Sleep
 
 A simple command line tool for text to image generation, using OpenAI's <a href="https://github.com/openai/CLIP">CLIP</a> and a <a href="https://arxiv.org/abs/1809.11096">BigGAN</a>.
@@ -45,7 +49,6 @@ That's it. Imagined images will be saved to whereever the command is invoked
 
 You can set the number of latents to optimize over by setting `--num-latents`. Default is at `32`
 
-
 ## Advanced
 
 You can invoke this in code with
@@ -62,6 +65,12 @@ train = Imagine(
 )
 
 train()
+```
+
+To save the trail of images during training, you just have to supply the `--save-progress` flag
+
+```bash
+$ imagine_big 'an owl flying over the night sky' --save-progress --save-every 100
 ```
 
 ## Citations
