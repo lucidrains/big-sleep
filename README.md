@@ -14,6 +14,9 @@
 
 *a pyramid made of ice*
 
+<img src="./samples/a_lonely_house_in_the_woods.png" width="384px"></img>
+
+*a lonely house in the woods*
 
 ## Big Sleep
 
