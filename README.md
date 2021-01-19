@@ -22,6 +22,10 @@
 
 *marriage in the mountains*
 
+<img src="./samples/a_lantern_dangling_from_the_tree_in_a_foggy_graveyard.png" width="384px"></img>
+
+*lantern dangling from a tree in a foggy graveyard*
+
 ## Big Sleep
 
 <a href="https://twitter.com/advadnoun">Ryan Murdock</a> has done it again, combining OpenAI's <a href="https://github.com/openai/CLIP">CLIP</a> and the generator from a <a href="https://arxiv.org/abs/1809.11096">BigGAN</a>! This repository wraps up his work so it is easily accessible to anyone who owns a GPU.
@@ -45,9 +49,7 @@ $ pip install big-sleep
 $ imagine_big 'a pyramid made of ice'
 ```
 
-That's it. Imagined images will be saved to whereever the command is invoked
-
-You can set the number of latents to optimize over by setting `--num-latents`. Default is at `32`
+Images will be saved to whereever the command is invoked
 
 ## Advanced
 
@@ -58,7 +60,6 @@ from big_sleep import Imagine
 
 train = Imagine(
     text = 'fire in the sky',
-    num_latents = 32,
     lr = 5e-2,
     save_every = 25,
     save_progress = True
@@ -67,7 +68,7 @@ train = Imagine(
 train()
 ```
 
-To save the trail of images during training, you just have to supply the `--save-progress` flag
+To save the progression of images during training, you simply have to supply the `--save-progress` flag
 
 ```bash
 $ imagine_big 'an owl flying over the night sky' --save-progress --save-every 100

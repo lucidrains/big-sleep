@@ -26,7 +26,7 @@ class Latents(torch.nn.Module):
     def __init__(self, num_latents):
         super().__init__()
         self.normu = torch.nn.Parameter(torch.zeros(num_latents, 128).normal_(std = 1))
-        self.cls = torch.nn.Parameter(torch.zeros(num_latents, 1000).normal_(-3.9, .3))
+        self.cls = torch.nn.Parameter(torch.zeros(num_latents, 1000).normal_(mean = -3.9, std = .3))
         self.register_buffer('thresh_lat', torch.tensor(1))
 
     def forward(self):
@@ -80,7 +80,7 @@ class BigSleep(nn.Module):
             offsetx = torch.randint(0, width - size, ())
             offsety = torch.randint(0, width - size, ())
             apper = out[:, :, offsetx:offsetx + size, offsety:offsety + size]
-            apper = F.interpolate(apper, (224,224), **self.interpolation_settings)
+            apper = F.interpolate(apper, (224, 224), **self.interpolation_settings)
             pieces.append(apper)
 
         into = torch.cat(pieces)
