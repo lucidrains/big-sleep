@@ -18,7 +18,7 @@ def train(
     imagine = Imagine(
         text,
         lr = lr,
-        image_size = image_size
+        image_size = image_size,
         gradient_accumulate_every = gradient_accumulate_every,
         epochs = epochs,
         iterations = iterations,
