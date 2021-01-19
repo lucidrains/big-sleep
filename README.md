@@ -1,30 +1,34 @@
-<img src="./samples/artificial_intelligence.png" width="384px"></img>
+<img src="./samples/artificial_intelligence.png" width="250px"></img>
 
 *artificial intelligence*
 
-<img src="./samples/cosmic_love_and_attention.png" width="384px"></img>
+<img src="./samples/cosmic_love_and_attention.png" width="250px"></img>
 
 *cosmic love and attention*
 
-<img src="./samples/fire_in_the_sky.png" width="384px"></img>
+<img src="./samples/fire_in_the_sky.png" width="250px"></img>
 
 *fire in the sky*
 
-<img src="./samples/a_pyramid_made_of_ice.png" width="384px"></img>
+<img src="./samples/a_pyramid_made_of_ice.png" width="250px"></img>
 
 *a pyramid made of ice*
 
-<img src="./samples/a_lonely_house_in_the_woods.png" width="384px"></img>
+<img src="./samples/a_lonely_house_in_the_woods.png" width="250px"></img>
 
 *a lonely house in the woods*
 
-<img src="./samples/marriage_in_the_mountains.png" width="384px"></img>
+<img src="./samples/marriage_in_the_mountains.png" width="250px"></img>
 
 *marriage in the mountains*
 
-<img src="./samples/a_lantern_dangling_from_the_tree_in_a_foggy_graveyard.png" width="384px"></img>
+<img src="./samples/a_lantern_dangling_from_the_tree_in_a_foggy_graveyard.png" width="250px"></img>
 
 *lantern dangling from a tree in a foggy graveyard*
+
+<img src="./samples/a_vivid_dream.png" width="250px"></img>
+
+*a vivid dream*
 
 ## Big Sleep
 
@@ -49,7 +53,7 @@ $ pip install big-sleep
 ## Usage
 
 ```bash
-$ dream 'a pyramid made of ice'
+$ dream "a pyramid made of ice"
 ```
 
 Images will be saved to whereever the command is invoked
@@ -62,7 +66,7 @@ You can invoke this in code with
 from big_sleep import Imagine
 
 train = Imagine(
-    text = 'fire in the sky',
+    text = "fire in the sky",
     lr = 5e-2,
     save_every = 25,
     save_progress = True
