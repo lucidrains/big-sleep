@@ -33,7 +33,7 @@ setup(
     'ftfy',
     'pytorch-pretrained-biggan',
     'regex',
-    'torchvision',
+    'torchvision>=0.8.2',
     'tqdm'
   ],
   classifiers=[
