@@ -5,7 +5,7 @@ from pathlib import Path
 def train(
     text,
     lr = .07,
-    num_latents = 32,
+    image_size = 512,
     gradient_accumulate_every = 4,
     epochs = 20,
     iterations = 1050,
@@ -18,7 +18,7 @@ def train(
     imagine = Imagine(
         text,
         lr = lr,
-        num_latents = num_latents,
+        image_size = image_size
         gradient_accumulate_every = gradient_accumulate_every,
         epochs = epochs,
         iterations = iterations,

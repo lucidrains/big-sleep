@@ -34,7 +34,7 @@ perceptor, preprocess = load()
 # load biggan
 
 class Latents(torch.nn.Module):
-    def __init__(self, num_latents):
+    def __init__(self, num_latents = 32):
         super().__init__()
         self.normu = torch.nn.Parameter(torch.zeros(num_latents, 128).normal_(std = 1))
         self.cls = torch.nn.Parameter(torch.zeros(num_latents, 1000).normal_(mean = -3.9, std = .3))
@@ -44,10 +44,11 @@ class Latents(torch.nn.Module):
         return self.normu, torch.sigmoid(self.cls)
 
 class Model(nn.Module):
-    def __init__(self, num_latents, image_width):
+    def __init__(self, image_size):
         super().__init__()
-        self.biggan = BigGAN.from_pretrained(f'biggan-deep-{image_width}')
-        self.latents = Latents(num_latents)
+        assert image_size in (128, 256, 512), 'image size must be one of 128, 256, or 512'
+        self.biggan = BigGAN.from_pretrained(f'biggan-deep-{image_size}')
+        self.latents = Latents()
 
     def forward(self):
         self.biggan.eval()
@@ -59,26 +60,24 @@ class Model(nn.Module):
 class BigSleep(nn.Module):
     def __init__(
         self,
-        num_latents = 32,
         num_cutouts = 128,
         loss_coef = 100,
-        image_width = 512,
+        image_size = 512,
         bilinear = False
     ):
         super().__init__()
         self.loss_coef = loss_coef
-        self.image_width = image_width
+        self.image_size = image_size
         self.num_cutouts = num_cutouts
 
         self.interpolation_settings = {'mode': 'bilinear', 'align_corners': False} if bilinear else {'mode': 'nearest'}
 
         self.model = Model(
-            num_latents = num_latents,
-            image_width = image_width
+            image_size = image_size
         )
 
     def forward(self, text, return_loss = True):
-        width, num_cutouts = self.image_width, self.num_cutouts
+        width, num_cutouts = self.image_size, self.num_cutouts
 
         out = self.model()
 
@@ -129,7 +128,7 @@ class Imagine(nn.Module):
         text,
         *,
         lr = .07,
-        num_latents = 32,
+        image_size = 512,
         gradient_accumulate_every = 1,
         save_every = 50,
         image_width = 512,
@@ -143,7 +142,7 @@ class Imagine(nn.Module):
         self.iterations = iterations
 
         model = BigSleep(
-            num_latents = num_latents,
+            image_size = image_size,
             bilinear = bilinear
         ).cuda()
 
