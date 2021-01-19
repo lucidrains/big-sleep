@@ -12,7 +12,8 @@ def train(
     save_every = 50,
     overwrite = False,
     save_progress = False,
-    bilinear = False
+    bilinear = False,
+    open_folder = True
 ):
 
     imagine = Imagine(
@@ -24,7 +25,8 @@ def train(
         iterations = iterations,
         save_every = save_every,
         save_progress = save_progress,
-        bilinear = bilinear
+        bilinear = bilinear,
+        open_folder = open_folder
     )
 
     if not overwrite and imagine.filename.exists():

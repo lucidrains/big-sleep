@@ -3,16 +3,20 @@ import torch.nn.functional as F
 from torch import nn
 from torch.optim import Adam
 
-from pathlib import Path
-from tqdm import trange
 import torchvision
 from torchvision.utils import save_image
+
+import os
+import sys
+import subprocess
+import signal
+from pathlib import Path
+from tqdm import trange
+from collections import namedtuple
 
 from big_sleep.biggan import BigGAN
 from big_sleep.clip import load, tokenize, normalize_image
 
-import signal
-from collections import namedtuple
 from einops import rearrange
 
 assert torch.cuda.is_available(), 'CUDA must be available in order to use Deep Daze'
@@ -26,6 +30,32 @@ def signal_handling(signum,frame):
     terminate = True
 
 signal.signal(signal.SIGINT,signal_handling)
+
+# helpers
+
+def open_folder(path):
+    if os.path.isfile(path):
+        path = os.path.dirname(path)
+
+    if not os.path.isdir(path):
+        return
+
+    cmd_list = None
+    if sys.platform == 'darwin':
+        cmd_list = ['open', '--', path]
+    elif sys.platform == 'linux2' or sys.platform == 'linux':
+        cmd_list = ['xdg-open', path]
+    elif sys.platform in ['win32', 'win64']:
+        cmd_list = ['explorer', path.replace('/','\\')]
+    if cmd_list == None:
+        return
+
+    try:
+        subprocess.check_call(cmd_list)
+    except subprocess.CalledProcessError:
+        pass
+    except OSError:
+        pass
 
 # load clip
 
@@ -134,7 +164,8 @@ class Imagine(nn.Module):
         epochs = 20,
         iterations = 1050,
         save_progress = False,
-        bilinear = False
+        bilinear = False,
+        open_folder = True
     ):
         super().__init__()
         self.epochs = epochs
@@ -159,6 +190,7 @@ class Imagine(nn.Module):
         self.save_progress = save_progress
 
         self.encoded_text = tokenize(text).cuda()
+        self.open_folder = open_folder
 
     def train_step(self, epoch, i):
         total_loss = 0
@@ -187,6 +219,9 @@ class Imagine(nn.Module):
 
     def forward(self):
         print(f'Imagining "{self.text}" from the depths of my weights...')
+
+        if self.open_folder:
+            open_folder('./')
 
         for epoch in trange(self.epochs, desc = 'epochs'):
             pbar = trange(self.iterations, desc='iteration')
