@@ -6,10 +6,10 @@ def train(
     text,
     lr = .07,
     num_latents = 32,
-    gradient_accumulate_every = 1,
+    gradient_accumulate_every = 4,
     epochs = 20,
     iterations = 1050,
-    save_every = 100,
+    save_every = 50,
     overwrite = False,
     save_progress = False,
     bilinear = False
