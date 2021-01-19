@@ -34,7 +34,10 @@ You will be able to have the GAN dream up images using natural language with a o
 
 Original notebook [![Open In Colab][colab-badge]][colab-notebook]
 
+Simplified notebook [![Open In Colab][colab-badge]][colab-notebook-2]
+
 [colab-notebook]: <https://colab.research.google.com/drive/1NCceX2mbiKOSlAd_o7IU7nA9UskKN5WR?usp=sharing>
+[colab-notebook-2]: <https://colab.research.google.com/drive/1MEWKbm-driRNF8PrU7ogS5o3se-ePyPb?usp=sharing>
 [colab-badge]: <https://colab.research.google.com/assets/colab-badge.svg>
 
 ## Install
@@ -71,7 +74,7 @@ train()
 To save the progression of images during training, you simply have to supply the `--save-progress` flag
 
 ```bash
-$ imagine_big 'an owl flying over the night sky' --save-progress --save-every 100
+$ imagine_big 'a bowl of apples next to the fireplace' --save-progress --save-every 100
 ```
 
 ## Alternatives
