@@ -13,6 +13,7 @@ def train(
     overwrite = False,
     save_progress = False,
     bilinear = False,
+    seed = None,
     open_folder = True
 ):
 
@@ -26,6 +27,7 @@ def train(
         save_every = save_every,
         save_progress = save_progress,
         bilinear = bilinear,
+        seed = seed,
         open_folder = open_folder
     )
 

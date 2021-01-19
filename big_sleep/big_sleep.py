@@ -33,6 +33,9 @@ signal.signal(signal.SIGINT,signal_handling)
 
 # helpers
 
+def exists(val):
+    return val is not None
+
 def open_folder(path):
     if os.path.isfile(path):
         path = os.path.dirname(path)
@@ -165,9 +168,14 @@ class Imagine(nn.Module):
         iterations = 1050,
         save_progress = False,
         bilinear = False,
-        open_folder = True
+        open_folder = True,
+        seed = None
     ):
         super().__init__()
+
+        if exists(seed):
+            torch.manual_seed(seed)
+
         self.epochs = epochs
         self.iterations = iterations
 
