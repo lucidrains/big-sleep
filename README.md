@@ -24,9 +24,9 @@
 
 ## Big Sleep
 
-A simple command line tool for text to image generation, using OpenAI's <a href="https://github.com/openai/CLIP">CLIP</a> and a <a href="https://arxiv.org/abs/1809.11096">BigGAN</a>.
+<a href="https://twitter.com/advadnoun">Ryan Murdock</a> has done it again, combining OpenAI's <a href="https://github.com/openai/CLIP">CLIP</a> and the generator from a <a href="https://arxiv.org/abs/1809.11096">BigGAN</a>! This repository wraps up his work so it is easily accessible to anyone who owns a GPU.
 
-<a href="https://twitter.com/advadnoun">Ryan Murdock</a> has done it again, combining CLIP and the generator from a BigGAN! This repository wraps up his work so it is easily accessible to anyone who owns a GPU.
+You will be able to have the GAN dream up images using natural language with a one-line command in the terminal.
 
 Original notebook [![Open In Colab][colab-badge]][colab-notebook]
 
