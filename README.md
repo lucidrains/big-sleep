@@ -30,6 +30,10 @@
 
 *a vivid dream*
 
+<img src="./samples/balloons_over_the_ruins_of_a_city.png" width="250px"></img>
+
+*balloons over the ruins of a city*
+
 ## Big Sleep
 
 <a href="https://twitter.com/advadnoun">Ryan Murdock</a> has done it again, combining OpenAI's <a href="https://github.com/openai/CLIP">CLIP</a> and the generator from a <a href="https://arxiv.org/abs/1809.11096">BigGAN</a>! This repository wraps up his work so it is easily accessible to anyone who owns a GPU.
