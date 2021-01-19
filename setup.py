@@ -10,7 +10,7 @@ setup(
   include_package_data = True,
   entry_points={
     'console_scripts': [
-      'imagine_big = big_sleep.cli:main',
+      'dream = big_sleep.cli:main',
     ],
   },
   version = __version__,

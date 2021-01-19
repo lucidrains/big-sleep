@@ -49,7 +49,7 @@ $ pip install big-sleep
 ## Usage
 
 ```bash
-$ imagine_big 'a pyramid made of ice'
+$ dream 'a pyramid made of ice'
 ```
 
 Images will be saved to whereever the command is invoked
@@ -74,7 +74,7 @@ train()
 To save the progression of images during training, you simply have to supply the `--save-progress` flag
 
 ```bash
-$ imagine_big 'a bowl of apples next to the fireplace' --save-progress --save-every 100
+$ dream "a bowl of apples next to the fireplace" --save-progress --save-every 100
 ```
 
 ## Alternatives
