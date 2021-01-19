@@ -73,6 +73,10 @@ To save the trail of images during training, you just have to supply the `--save
 $ imagine_big 'an owl flying over the night sky' --save-progress --save-every 100
 ```
 
+## Alternatives
+
+<a href="https://github.com/lucidrains/deep-daze">Deep Daze</a> - CLIP and a deep SIREN network
+
 ## Citations
 
 ```bibtex
