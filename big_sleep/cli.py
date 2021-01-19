@@ -9,9 +9,10 @@ def train(
     gradient_accumulate_every = 1,
     epochs = 20,
     iterations = 1050,
-    save_every = 25,
+    save_every = 100,
     overwrite = False,
-    save_progress = False
+    save_progress = False,
+    bilinear = False
 ):
 
     imagine = Imagine(
@@ -22,7 +23,8 @@ def train(
         epochs = epochs,
         iterations = iterations,
         save_every = save_every,
-        save_progress = save_progress
+        save_progress = save_progress,
+        bilinear = bilinear
     )
 
     if not overwrite and imagine.filename.exists():

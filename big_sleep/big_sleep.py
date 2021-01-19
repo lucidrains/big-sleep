@@ -51,12 +51,15 @@ class BigSleep(nn.Module):
         num_latents = 32,
         num_cutouts = 128,
         loss_coef = 100,
-        image_width = 512
+        image_width = 512,
+        bilinear = False
     ):
         super().__init__()
         self.loss_coef = loss_coef
         self.image_width = image_width
         self.num_cutouts = num_cutouts
+
+        self.interpolation_settings = {'mode': 'bilinear', 'align_corners': False} if bilinear else {'mode': 'nearest'}
 
         self.model = Model(
             num_latents = num_latents,
@@ -77,7 +80,7 @@ class BigSleep(nn.Module):
             offsetx = torch.randint(0, width - size, ())
             offsety = torch.randint(0, width - size, ())
             apper = out[:, :, offsetx:offsetx + size, offsety:offsety + size]
-            apper = F.interpolate(apper, (224,224), mode='nearest')
+            apper = F.interpolate(apper, (224,224), **self.interpolation_settings)
             pieces.append(apper)
 
         into = torch.cat(pieces)
@@ -121,14 +124,16 @@ class Imagine(nn.Module):
         image_width = 512,
         epochs = 20,
         iterations = 1050,
-        save_progress = False
+        save_progress = False,
+        bilinear = False
     ):
         super().__init__()
         self.epochs = epochs
         self.iterations = iterations
 
         model = BigSleep(
-            num_latents = num_latents
+            num_latents = num_latents,
+            bilinear = bilinear
         ).cuda()
 
         self.model = model
