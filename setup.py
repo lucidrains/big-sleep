@@ -29,8 +29,11 @@ setup(
   install_requires=[
     'torch>=1.7.1',
     'einops>=0.3',
+    'fire',
     'ftfy',
     'pytorch-pretrained-biggan',
+    'regex',
+    'torchvision',
     'tqdm'
   ],
   classifiers=[
