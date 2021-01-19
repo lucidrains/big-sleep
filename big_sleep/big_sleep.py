@@ -131,7 +131,6 @@ class Imagine(nn.Module):
         image_size = 512,
         gradient_accumulate_every = 1,
         save_every = 50,
-        image_width = 512,
         epochs = 20,
         iterations = 1050,
         save_progress = False,
