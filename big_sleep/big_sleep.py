@@ -212,7 +212,7 @@ class Imagine(nn.Module):
         self.optimizer.step()
         self.optimizer.zero_grad()
 
-        if i != 0 and i % self.save_every == 0:
+        if (i + 1) % self.save_every == 0:
             with torch.no_grad():
                 best = torch.topk(losses[2], k = 1, largest = False)[1]
                 image = self.model.model()[best].cpu()
