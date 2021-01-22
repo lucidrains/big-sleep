@@ -81,13 +81,13 @@ dream()
 
 You can also set a new text by using the `.set_text(<str>)` command
 
-```
+```python
 dream.set_text("a quiet pond underneath the midnight moon")
 ```
 
 And reset the latents with `.reset()`
 
-```
+```python
 dream.reset()
 ```
 
