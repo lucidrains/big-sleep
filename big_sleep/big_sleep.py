@@ -194,6 +194,7 @@ class Imagine(nn.Module):
 
         self.model = model
 
+        self.lr = lr
         self.optimizer = Adam(model.model.latents.parameters(), lr)
         self.gradient_accumulate_every = gradient_accumulate_every
         self.save_every = save_every
@@ -213,6 +214,7 @@ class Imagine(nn.Module):
 
     def reset(self):
         self.model.reset()
+        self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
 
     def train_step(self, epoch, i):
         total_loss = 0
