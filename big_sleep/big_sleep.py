@@ -10,6 +10,7 @@ import os
 import sys
 import subprocess
 import signal
+import random
 from pathlib import Path
 from tqdm import trange
 from collections import namedtuple
@@ -175,6 +176,9 @@ class Imagine(nn.Module):
 
         if exists(seed):
             torch.manual_seed(seed)
+            torch.cuda.manual_seed(seed)
+            random.seed(seed)
+            torch.backends.cudnn.deterministic=True
 
         self.epochs = epochs
         self.iterations = iterations
