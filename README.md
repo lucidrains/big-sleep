@@ -69,14 +69,26 @@ You can invoke this in code with
 ```python
 from big_sleep import Imagine
 
-train = Imagine(
+dream = Imagine(
     text = "fire in the sky",
     lr = 5e-2,
     save_every = 25,
     save_progress = True
 )
 
-train()
+dream()
+```
+
+You can also set a new text by using the `.set_text(<str>)` command
+
+```
+dream.set_text("a quiet pond underneath the midnight moon")
+```
+
+And reset the latents with `.reset()`
+
+```
+dream.reset()
 ```
 
 To save the progression of images during training, you simply have to supply the `--save-progress` flag
