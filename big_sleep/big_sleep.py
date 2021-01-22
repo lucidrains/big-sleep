@@ -81,6 +81,9 @@ class Model(nn.Module):
         super().__init__()
         assert image_size in (128, 256, 512), 'image size must be one of 128, 256, or 512'
         self.biggan = BigGAN.from_pretrained(f'biggan-deep-{image_size}')
+        self.init_latents()
+
+    def init_latents(self):
         self.latents = Latents()
 
     def forward(self):
@@ -108,6 +111,9 @@ class BigSleep(nn.Module):
         self.model = Model(
             image_size = image_size
         )
+
+    def reset(self):
+        self.model.init_latents()
 
     def forward(self, text, return_loss = True):
         width, num_cutouts = self.image_size, self.num_cutouts
@@ -192,15 +198,21 @@ class Imagine(nn.Module):
         self.gradient_accumulate_every = gradient_accumulate_every
         self.save_every = save_every
 
+        self.save_progress = save_progress
+        self.open_folder = open_folder
+
+        self.set_text(text)
+
+    def set_text(self, text):
         self.text = text
         textpath = self.text.replace(' ','_')
 
         self.textpath = textpath
         self.filename = Path(f'./{textpath}.png')
-        self.save_progress = save_progress
-
         self.encoded_text = tokenize(text).cuda()
-        self.open_folder = open_folder
+
+    def reset(self):
+        self.model.reset()
 
     def train_step(self, epoch, i):
         total_loss = 0
