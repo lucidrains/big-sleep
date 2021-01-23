@@ -236,7 +236,8 @@ class Imagine(nn.Module):
                 print(f'image updated at "./{str(self.filename)}"')
 
                 if self.save_progress:
-                    num = i // self.save_every
+                    total_iterations = epoch * self.iterations + i
+                    num = total_iterations // self.save_every
                     save_image(image, Path(f'./{self.textpath}.{num}.png'))
 
         return total_loss
