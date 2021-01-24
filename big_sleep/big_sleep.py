@@ -175,14 +175,16 @@ class Imagine(nn.Module):
         save_progress = False,
         bilinear = False,
         open_folder = True,
-        seed = None
+        seed = None,
+        torch_deterministic = False
     ):
         super().__init__()
 
         if exists(seed):
             assert not bilinear, 'the deterministic (seeded) operation does not work with interpolation, yet (ask pytorch)'
-            torch.set_deterministic(True)
+            print(f'setting seed of {seed} - you can override this with --seed argument in the command line')
             torch.manual_seed(seed)
+            torch.set_deterministic(torch_deterministic)
 
         self.epochs = epochs
         self.iterations = iterations

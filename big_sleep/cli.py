@@ -13,8 +13,9 @@ def train(
     overwrite = False,
     save_progress = False,
     bilinear = False,
-    seed = None,
-    open_folder = True
+    open_folder = True,
+    seed = 0,
+    torch_deterministic = False
 ):
     print('Starting up...')
 
@@ -29,6 +30,7 @@ def train(
         save_progress = save_progress,
         bilinear = bilinear,
         seed = seed,
+        torch_deterministic = torch_deterministic,
         open_folder = open_folder
     )
 
