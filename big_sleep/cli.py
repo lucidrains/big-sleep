@@ -6,7 +6,7 @@ def train(
     text,
     lr = .07,
     image_size = 512,
-    gradient_accumulate_every = 4,
+    gradient_accumulate_every = 1,
     epochs = 20,
     iterations = 1050,
     save_every = 50,
@@ -14,7 +14,7 @@ def train(
     save_progress = False,
     bilinear = False,
     open_folder = True,
-    seed = None,
+    seed = 0,
     torch_deterministic = False
 ):
     print('Starting up...')
