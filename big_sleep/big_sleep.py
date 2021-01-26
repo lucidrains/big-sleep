@@ -182,7 +182,11 @@ class Imagine(nn.Module):
 
         if exists(seed):
             assert not bilinear, 'the deterministic (seeded) operation does not work with interpolation, yet (ask pytorch)'
-            print(f'setting seed of {seed} - you can override this with --seed argument in the command line')
+            print(f'setting seed of {seed}')
+
+            if seed == 0:
+                print('you can override this with --seed argument in the command line, or --random for a randomly chosen one')
+
             torch.manual_seed(seed)
             torch.set_deterministic(torch_deterministic)
 

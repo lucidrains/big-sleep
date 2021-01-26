@@ -1,4 +1,5 @@
 import fire
+import random as rnd
 from big_sleep import Imagine
 from pathlib import Path
 
@@ -15,9 +16,13 @@ def train(
     bilinear = False,
     open_folder = True,
     seed = 0,
+    random = False,
     torch_deterministic = False
 ):
     print('Starting up...')
+
+    if random:
+        seed = rnd.randint(0, 1e6)
 
     imagine = Imagine(
         text,
