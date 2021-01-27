@@ -87,7 +87,7 @@ class Latents(torch.nn.Module):
     def __init__(
         self,
         num_latents = 32,
-        num_classes = None,
+        max_classes = None,
         class_temperature = 2.
     ):
         super().__init__()
@@ -95,13 +95,13 @@ class Latents(torch.nn.Module):
         self.cls = torch.nn.Parameter(torch.zeros(num_latents, 1000).normal_(mean = -3.9, std = .3))
         self.register_buffer('thresh_lat', torch.tensor(1))
 
-        assert not exists(num_classes) or num_classes > 0 and num_classes <= 1000, 'num classes must be between 0 and 1000'
-        self.num_classes = num_classes
+        assert not exists(max_classes) or max_classes > 0 and max_classes <= 1000, 'num classes must be between 0 and 1000'
+        self.max_classes = max_classes
         self.class_temperature = class_temperature
 
     def forward(self):
-        if exists(self.num_classes):
-            classes = differentiable_topk(self.cls, self.num_classes, temperature = self.class_temperature)
+        if exists(self.max_classes):
+            classes = differentiable_topk(self.cls, self.max_classes, temperature = self.class_temperature)
         else:
             classes = torch.sigmoid(self.cls)
 
@@ -111,20 +111,20 @@ class Model(nn.Module):
     def __init__(
         self,
         image_size,
-        num_classes = None,
+        max_classes = None,
         class_temperature = 2.
     ):
         super().__init__()
         assert image_size in (128, 256, 512), 'image size must be one of 128, 256, or 512'
         self.biggan = BigGAN.from_pretrained(f'biggan-deep-{image_size}')
 
-        self.num_classes = num_classes
+        self.max_classes = max_classes
         self.class_temperature = class_temperature
         self.init_latents()
 
     def init_latents(self):
         self.latents = Latents(
-            num_classes = self.num_classes,
+            max_classes = self.max_classes,
             class_temperature = self.class_temperature
         )
 
@@ -142,7 +142,7 @@ class BigSleep(nn.Module):
         loss_coef = 100,
         image_size = 512,
         bilinear = False,
-        num_classes = None,
+        max_classes = None,
         class_temperature = 2.
     ):
         super().__init__()
@@ -154,7 +154,7 @@ class BigSleep(nn.Module):
 
         self.model = Model(
             image_size = image_size,
-            num_classes = num_classes,
+            max_classes = max_classes,
             class_temperature = class_temperature
         )
 
@@ -223,7 +223,7 @@ class Imagine(nn.Module):
         open_folder = True,
         seed = None,
         torch_deterministic = False,
-        num_classes = None,
+        max_classes = None,
         class_temperature = 2.
     ):
         super().__init__()
@@ -244,7 +244,7 @@ class Imagine(nn.Module):
         model = BigSleep(
             image_size = image_size,
             bilinear = bilinear,
-            num_classes = num_classes,
+            max_classes = max_classes,
             class_temperature = class_temperature
         ).cuda()
 

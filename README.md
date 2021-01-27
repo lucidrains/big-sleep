@@ -97,6 +97,14 @@ To save the progression of images during training, you simply have to supply the
 $ dream "a bowl of apples next to the fireplace" --save-progress --save-every 100
 ```
 
+## Experimentation
+
+You can set the number of classes that you wish to restrict Big Sleep to use for the Big GAN with the `--max-classes` flag as follows (ex. 15 classes). This may lead to extra stability during training, at the cost of lost expressivity.
+
+```bash
+$ dream 'a single flower in withered field' --max-classes 15
+```
+
 ## Alternatives
 
 <a href="https://github.com/lucidrains/deep-daze">Deep Daze</a> - CLIP and a deep SIREN network
