@@ -18,7 +18,7 @@ def train(
     seed = 0,
     random = False,
     torch_deterministic = False,
-    num_classes = None,
+    max_classes = None,
     class_temperature = 2.
 ):
     print('Starting up...')
@@ -39,7 +39,7 @@ def train(
         seed = seed,
         torch_deterministic = torch_deterministic,
         open_folder = open_folder,
-        num_classes = num_classes,
+        max_classes = max_classes,
         class_temperature = class_temperature
     )
 
