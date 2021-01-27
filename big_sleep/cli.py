@@ -17,7 +17,9 @@ def train(
     open_folder = True,
     seed = 0,
     random = False,
-    torch_deterministic = False
+    torch_deterministic = False,
+    num_classes = None,
+    class_temperature = 2.
 ):
     print('Starting up...')
 
@@ -36,7 +38,9 @@ def train(
         bilinear = bilinear,
         seed = seed,
         torch_deterministic = torch_deterministic,
-        open_folder = open_folder
+        open_folder = open_folder,
+        num_classes = num_classes,
+        class_temperature = class_temperature
     )
 
     if not overwrite and imagine.filename.exists():
