@@ -10,6 +10,7 @@ import os
 import sys
 import subprocess
 import signal
+from datetime import datetime
 from pathlib import Path
 from tqdm import trange
 from collections import namedtuple
@@ -224,19 +225,20 @@ class Imagine(nn.Module):
         seed = None,
         torch_deterministic = False,
         max_classes = None,
-        class_temperature = 2.
+        class_temperature = 2.,
+        save_date_time = False
     ):
         super().__init__()
 
         if exists(seed):
-            assert not bilinear, 'the deterministic (seeded) operation does not work with interpolation, yet (ask pytorch)'
             print(f'setting seed of {seed}')
-
             if seed == 0:
                 print('you can override this with --seed argument in the command line, or --random for a randomly chosen one')
-
             torch.manual_seed(seed)
-            torch.set_deterministic(torch_deterministic)
+
+        if torch_deterministic:
+            assert not bilinear, 'the deterministic (seeded) operation does not work with interpolation (PyTorch 1.7.1)'
+            torch.set_deterministic(True)
 
         self.epochs = epochs
         self.iterations = iterations
@@ -256,6 +258,7 @@ class Imagine(nn.Module):
         self.save_every = save_every
 
         self.save_progress = save_progress
+        self.save_date_time = save_date_time
         self.open_folder = open_folder
 
         self.set_text(text)
@@ -263,6 +266,8 @@ class Imagine(nn.Module):
     def set_text(self, text):
         self.text = text
         textpath = self.text.replace(' ','_')
+        if self.save_date_time:
+            textpath = datetime.now().strftime("%y%m%d-%H%M%S-") + textpath
 
         self.textpath = textpath
         self.filename = Path(f'./{textpath}.png')
