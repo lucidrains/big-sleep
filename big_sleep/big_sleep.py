@@ -10,6 +10,7 @@ import os
 import sys
 import subprocess
 import signal
+from datetime import datetime
 from pathlib import Path
 from tqdm import trange
 from collections import namedtuple
@@ -224,7 +225,8 @@ class Imagine(nn.Module):
         seed = None,
         torch_deterministic = False,
         max_classes = None,
-        class_temperature = 2.
+        class_temperature = 2.,
+        save_date_time = False
     ):
         super().__init__()
 
@@ -256,6 +258,7 @@ class Imagine(nn.Module):
         self.save_every = save_every
 
         self.save_progress = save_progress
+        self.save_date_time = save_date_time
         self.open_folder = open_folder
 
         self.set_text(text)
@@ -263,6 +266,8 @@ class Imagine(nn.Module):
     def set_text(self, text):
         self.text = text
         textpath = self.text.replace(' ','_')
+        if self.save_date_time:
+            textpath = datetime.now().strftime("%y%m%d-%H%M%S-") + textpath
 
         self.textpath = textpath
         self.filename = Path(f'./{textpath}.png')

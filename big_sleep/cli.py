@@ -13,6 +13,7 @@ def train(
     save_every = 50,
     overwrite = False,
     save_progress = False,
+    save_date_time = False,
     bilinear = False,
     open_folder = True,
     seed = 0,
@@ -40,7 +41,8 @@ def train(
         torch_deterministic = torch_deterministic,
         open_folder = open_folder,
         max_classes = max_classes,
-        class_temperature = class_temperature
+        class_temperature = class_temperature,
+        save_date_time = save_date_time
     )
 
     if not overwrite and imagine.filename.exists():
