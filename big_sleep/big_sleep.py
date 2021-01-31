@@ -322,7 +322,7 @@ class Imagine(nn.Module):
             image_pbar.update(0)
             for i in pbar:
                 loss = self.train_step(epoch, i, image_pbar)
-                pbar.set_description(f'loss: {loss.item():.2f}')
+                pbar.set_description(f'loss: {loss.item():04.2f}')
 
                 if terminate:
                     print('detecting keyboard interrupt, gracefully exiting')
