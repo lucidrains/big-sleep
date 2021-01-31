@@ -265,7 +265,7 @@ class Imagine(nn.Module):
 
     def set_text(self, text):
         self.text = text
-        textpath = self.text.replace(' ','_')
+        textpath = self.text.replace(' ','_').split('_')[0]
         if self.save_date_time:
             textpath = datetime.now().strftime("%y%m%d-%H%M%S-") + textpath
 
@@ -277,7 +277,7 @@ class Imagine(nn.Module):
         self.model.reset()
         self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
 
-    def train_step(self, epoch, i):
+    def train_step(self, epoch, i, pbar=None):
         total_loss = 0
 
         for _ in range(self.gradient_accumulate_every):
@@ -294,7 +294,11 @@ class Imagine(nn.Module):
                 best = torch.topk(losses[2], k = 1, largest = False)[1]
                 image = self.model.model()[best].cpu()
                 save_image(image, str(self.filename))
-                print(f'image updated at "./{str(self.filename)}"')
+                update_message = f'image updated at "./{str(self.filename)}" ({i})'
+                if pbar is None:
+                    print(update_message)
+                else:
+                    pbar.write(update_message)
 
                 if self.save_progress:
                     total_iterations = epoch * self.iterations + i
@@ -310,10 +314,10 @@ class Imagine(nn.Module):
             open_folder('./')
             self.open_folder = False
 
-        for epoch in trange(self.epochs, desc = 'epochs'):
-            pbar = trange(self.iterations, desc='iteration')
+        for epoch in trange(self.epochs, desc = 'epochs', position=0, leave=True):
+            pbar = trange(self.iterations, desc='iteration', position=0, leave=True)
             for i in pbar:
-                loss = self.train_step(epoch, i)
+                loss = self.train_step(epoch, i, pbar)
                 pbar.set_description(f'loss: {loss.item():.2f}')
 
                 if terminate:
