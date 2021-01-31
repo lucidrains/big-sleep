@@ -34,6 +34,7 @@ setup(
     'pytorch-pretrained-biggan',
     'regex',
     'torchvision>=0.8.2',
+    'torch_optimizer',
     'tqdm'
   ],
   classifiers=[
