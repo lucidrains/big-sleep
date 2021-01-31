@@ -5,6 +5,7 @@ from torch.optim import Adam
 
 import torchvision
 from torchvision.utils import save_image
+from torch_optimizer import AdamP
 
 import os
 import sys
@@ -99,7 +100,7 @@ class Latents(torch.nn.Module):
         assert not exists(max_classes) or max_classes > 0 and max_classes <= 1000, 'num classes must be between 0 and 1000'
         self.max_classes = max_classes
         self.class_temperature = class_temperature
-
+        
     def forward(self):
         if exists(self.max_classes):
             classes = differentiable_topk(self.cls, self.max_classes, temperature = self.class_temperature)
@@ -253,7 +254,7 @@ class Imagine(nn.Module):
         self.model = model
 
         self.lr = lr
-        self.optimizer = Adam(model.model.latents.parameters(), lr)
+        self.optimizer = AdamP(model.model.latents.parameters(), lr)
         self.gradient_accumulate_every = gradient_accumulate_every
         self.save_every = save_every
 
@@ -275,9 +276,10 @@ class Imagine(nn.Module):
 
     def reset(self):
         self.model.reset()
-        self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
+        self.optimizer = AdamP(self.model.model.latents.parameters(), self.lr)
 
     def train_step(self, epoch, i):
+        self.model.train()
         total_loss = 0
 
         for _ in range(self.gradient_accumulate_every):
@@ -292,6 +294,8 @@ class Imagine(nn.Module):
         if (i + 1) % self.save_every == 0:
             with torch.no_grad():
                 best = torch.topk(losses[2], k = 1, largest = False)[1]
+
+                self.model.eval()
                 image = self.model.model()[best].cpu()
                 save_image(image, str(self.filename))
                 print(f'image updated at "./{str(self.filename)}"')
