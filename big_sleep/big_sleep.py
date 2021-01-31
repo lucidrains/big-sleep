@@ -19,6 +19,7 @@ from big_sleep.biggan import BigGAN
 from big_sleep.clip import load, tokenize, normalize_image
 
 from einops import rearrange
+from tqdm.std import tqdm
 
 assert torch.cuda.is_available(), 'CUDA must be available in order to use Deep Daze'
 
@@ -260,6 +261,8 @@ class Imagine(nn.Module):
         self.save_progress = save_progress
         self.save_date_time = save_date_time
         self.open_folder = open_folder
+        self.total_image_updates = (self.epochs * self.iterations) / self.save_every
+        self.image_updates = 0
 
         self.set_text(text)
 
@@ -277,7 +280,7 @@ class Imagine(nn.Module):
         self.model.reset()
         self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
 
-    def train_step(self, epoch, i):
+    def train_step(self, epoch, i, pbar=None):
         total_loss = 0
 
         for _ in range(self.gradient_accumulate_every):
@@ -294,7 +297,12 @@ class Imagine(nn.Module):
                 best = torch.topk(losses[2], k = 1, largest = False)[1]
                 image = self.model.model()[best].cpu()
                 save_image(image, str(self.filename))
-                print(f'image updated at "./{str(self.filename)}"')
+                if pbar is not None:
+                    pbar.update(self.image_updates)
+                    self.image_updates += 1
+                else:
+                    print(f'image updated at "./{str(self.filename)}"')
+                    
 
                 if self.save_progress:
                     total_iterations = epoch * self.iterations + i
@@ -310,10 +318,11 @@ class Imagine(nn.Module):
             open_folder('./')
             self.open_folder = False
 
-        for epoch in trange(self.epochs, desc = 'epochs'):
-            pbar = trange(self.iterations, desc='iteration')
+        image_pbar = tqdm(total=self.total_image_updates, desc='image update', position=2, leave=True)
+        for epoch in trange(self.epochs, desc = 'epochs', position=0, leave=True):
+            pbar = trange(self.iterations, desc='iteration', position=1, leave=True)
             for i in pbar:
-                loss = self.train_step(epoch, i)
+                loss = self.train_step(epoch, i, image_pbar)
                 pbar.set_description(f'loss: {loss.item():.2f}')
 
                 if terminate:
