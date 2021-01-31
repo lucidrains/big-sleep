@@ -315,6 +315,7 @@ class Imagine(nn.Module):
             self.open_folder = False
 
         for epoch in trange(self.epochs, desc = 'epochs', position=0, leave=True):
+            print()
             pbar = trange(self.iterations, desc='iteration', position=0, leave=True)
             for i in pbar:
                 loss = self.train_step(epoch, i, pbar)
