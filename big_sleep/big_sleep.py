@@ -265,7 +265,7 @@ class Imagine(nn.Module):
 
     def set_text(self, text):
         self.text = text
-        textpath = self.text.replace(' ','_').split('_')[0]
+        textpath = self.text.replace(' ','_')[:255]
         if self.save_date_time:
             textpath = datetime.now().strftime("%y%m%d-%H%M%S-") + textpath
 
