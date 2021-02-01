@@ -97,6 +97,12 @@ To save the progression of images during training, you simply have to supply the
 $ dream "a bowl of apples next to the fireplace" --save-progress --save-every 100
 ```
 
+Due to the class conditioned nature of the GAN, Big Sleep often steers off the manifold into noise. You can use a flag to save the best high scoring image (per CLIP critic) to `{filepath}.best.png` in your folder.
+
+```bash
+$ dream "a room with a view of the ocean" --save-best
+```
+
 ## Experimentation
 
 You can set the number of classes that you wish to restrict Big Sleep to use for the Big GAN with the `--max-classes` flag as follows (ex. 15 classes). This may lead to extra stability during training, at the cost of lost expressivity.

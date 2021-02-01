@@ -20,7 +20,8 @@ def train(
     random = False,
     torch_deterministic = False,
     max_classes = None,
-    class_temperature = 2.
+    class_temperature = 2.,
+    save_best = False
 ):
     print('Starting up...')
 
@@ -42,7 +43,8 @@ def train(
         open_folder = open_folder,
         max_classes = max_classes,
         class_temperature = class_temperature,
-        save_date_time = save_date_time
+        save_date_time = save_date_time,
+        save_best = save_best
     )
 
     if not overwrite and imagine.filename.exists():
