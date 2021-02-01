@@ -5,7 +5,6 @@ from torch.optim import Adam
 
 import torchvision
 from torchvision.utils import save_image
-from torch_optimizer import AdamP
 
 import os
 import sys
@@ -13,14 +12,13 @@ import subprocess
 import signal
 from datetime import datetime
 from pathlib import Path
-from tqdm import trange
+from tqdm import tqdm, trange
 from collections import namedtuple
 
 from big_sleep.biggan import BigGAN
 from big_sleep.clip import load, tokenize, normalize_image
 
 from einops import rearrange
-from tqdm.std import tqdm
 
 assert torch.cuda.is_available(), 'CUDA must be available in order to use Deep Daze'
 
@@ -101,7 +99,7 @@ class Latents(torch.nn.Module):
         assert not exists(max_classes) or max_classes > 0 and max_classes <= 1000, 'num classes must be between 0 and 1000'
         self.max_classes = max_classes
         self.class_temperature = class_temperature
-        
+
     def forward(self):
         if exists(self.max_classes):
             classes = differentiable_topk(self.cls, self.max_classes, temperature = self.class_temperature)
@@ -283,10 +281,9 @@ class Imagine(nn.Module):
 
     def reset(self):
         self.model.reset()
-        self.optimizer = AdamP(self.model.model.latents.parameters(), self.lr)
+        self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
 
     def train_step(self, epoch, i, pbar=None):
-        self.model.train()
         total_loss = 0
 
         for _ in range(self.gradient_accumulate_every):
@@ -329,8 +326,9 @@ class Imagine(nn.Module):
             self.open_folder = False
 
         image_pbar = tqdm(total=self.total_image_updates, desc='image update', position=2, leave=True)
+        pbar = trange(self.iterations, desc='   iteration', position=1, leave=True)
         for epoch in trange(self.epochs, desc = '      epochs', position=0, leave=True):
-            pbar = trange(self.iterations, desc='   iteration', position=1, leave=True)
+            pbar.reset()
             image_pbar.update(0)
             for i in pbar:
                 loss = self.train_step(epoch, i, image_pbar)
