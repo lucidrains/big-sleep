@@ -321,6 +321,8 @@ class Imagine(nn.Module):
     def forward(self):
         print(f'Imagining "{self.text}" from the depths of my weights...')
 
+        self.model(self.encoded_text) # one warmup step due to issue with CLIP and CUDA
+
         if self.open_folder:
             open_folder('./')
             self.open_folder = False
