@@ -20,6 +20,8 @@ from big_sleep.clip import load, tokenize, normalize_image
 
 from einops import rearrange
 
+from .resample import resample
+
 assert torch.cuda.is_available(), 'CUDA must be available in order to use Deep Daze'
 
 # graceful keyboard interrupt
@@ -144,12 +146,14 @@ class BigSleep(nn.Module):
         image_size = 512,
         bilinear = False,
         max_classes = None,
-        class_temperature = 2.
+        class_temperature = 2.,
+        experimental_resample = False,
     ):
         super().__init__()
         self.loss_coef = loss_coef
         self.image_size = image_size
         self.num_cutouts = num_cutouts
+        self.experimental_resample = experimental_resample
 
         self.interpolation_settings = {'mode': 'bilinear', 'align_corners': False} if bilinear else {'mode': 'nearest'}
 
@@ -176,7 +180,10 @@ class BigSleep(nn.Module):
             offsetx = torch.randint(0, width - size, ())
             offsety = torch.randint(0, width - size, ())
             apper = out[:, :, offsetx:offsetx + size, offsety:offsety + size]
-            apper = F.interpolate(apper, (224, 224), **self.interpolation_settings)
+            if (self.experimental_resample):
+                apper = resample(apper, (224, 224))
+            else:
+                apper = F.interpolate(apper, (224, 224), **self.interpolation_settings)
             pieces.append(apper)
 
         into = torch.cat(pieces)
@@ -227,7 +234,8 @@ class Imagine(nn.Module):
         max_classes = None,
         class_temperature = 2.,
         save_date_time = False,
-        save_best = False
+        save_best = False,
+        experimental_resample = False,
     ):
         super().__init__()
 
@@ -248,7 +256,8 @@ class Imagine(nn.Module):
             image_size = image_size,
             bilinear = bilinear,
             max_classes = max_classes,
-            class_temperature = class_temperature
+            class_temperature = class_temperature,
+            experimental_resample = experimental_resample,
         ).cuda()
 
         self.model = model

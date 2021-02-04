@@ -21,7 +21,8 @@ def train(
     torch_deterministic = False,
     max_classes = None,
     class_temperature = 2.,
-    save_best = False
+    save_best = False,
+    experimental_resample = False,
 ):
     print('Starting up...')
 
@@ -44,7 +45,8 @@ def train(
         max_classes = max_classes,
         class_temperature = class_temperature,
         save_date_time = save_date_time,
-        save_best = save_best
+        save_best = save_best,
+        experimental_resample = experimental_resample,
     )
 
     if not overwrite and imagine.filename.exists():
