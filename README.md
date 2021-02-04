@@ -60,7 +60,7 @@ $ pip install big-sleep
 $ dream "a pyramid made of ice"
 ```
 
-Images will be saved to whereever the command is invoked
+Images will be saved to wherever the command is invoked
 
 ## Advanced
 
