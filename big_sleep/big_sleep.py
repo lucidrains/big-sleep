@@ -239,15 +239,16 @@ class Imagine(nn.Module):
     ):
         super().__init__()
 
+        if torch_deterministic:
+            assert not bilinear, 'the deterministic (seeded) operation does not work with interpolation (PyTorch 1.7.1)'
+            torch.set_deterministic(True)
+
         if exists(seed):
             print(f'setting seed of {seed}')
             if seed == 0:
                 print('you can override this with --seed argument in the command line, or --random for a randomly chosen one')
             torch.manual_seed(seed)
 
-        if torch_deterministic:
-            assert not bilinear, 'the deterministic (seeded) operation does not work with interpolation (PyTorch 1.7.1)'
-            torch.set_deterministic(True)
 
         self.epochs = epochs
         self.iterations = iterations
