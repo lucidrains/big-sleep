@@ -1,7 +1,8 @@
 import fire
 import random as rnd
-from big_sleep import Imagine
+from big_sleep import Imagine, version
 from pathlib import Path
+from .version import __version__;
 
 def train(
     text,
@@ -21,9 +22,10 @@ def train(
     torch_deterministic = False,
     max_classes = None,
     class_temperature = 2.,
-    save_best = False
+    save_best = False,
+    experimental_resample = False,
 ):
-    print('Starting up...')
+    print(f'Starting up... v{__version__}')
 
     if random:
         seed = rnd.randint(0, 1e6)
@@ -44,7 +46,8 @@ def train(
         max_classes = max_classes,
         class_temperature = class_temperature,
         save_date_time = save_date_time,
-        save_best = save_best
+        save_best = save_best,
+        experimental_resample = experimental_resample,
     )
 
     if not overwrite and imagine.filename.exists():

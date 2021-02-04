@@ -20,6 +20,8 @@ from big_sleep.clip import load, tokenize, normalize_image
 
 from einops import rearrange
 
+from .resample import resample
+
 assert torch.cuda.is_available(), 'CUDA must be available in order to use Deep Daze'
 
 # graceful keyboard interrupt
@@ -144,12 +146,14 @@ class BigSleep(nn.Module):
         image_size = 512,
         bilinear = False,
         max_classes = None,
-        class_temperature = 2.
+        class_temperature = 2.,
+        experimental_resample = False,
     ):
         super().__init__()
         self.loss_coef = loss_coef
         self.image_size = image_size
         self.num_cutouts = num_cutouts
+        self.experimental_resample = experimental_resample
 
         self.interpolation_settings = {'mode': 'bilinear', 'align_corners': False} if bilinear else {'mode': 'nearest'}
 
@@ -176,7 +180,10 @@ class BigSleep(nn.Module):
             offsetx = torch.randint(0, width - size, ())
             offsety = torch.randint(0, width - size, ())
             apper = out[:, :, offsetx:offsetx + size, offsety:offsety + size]
-            apper = F.interpolate(apper, (224, 224), **self.interpolation_settings)
+            if (self.experimental_resample):
+                apper = resample(apper, (224, 224))
+            else:
+                apper = F.interpolate(apper, (224, 224), **self.interpolation_settings)
             pieces.append(apper)
 
         into = torch.cat(pieces)
@@ -227,9 +234,14 @@ class Imagine(nn.Module):
         max_classes = None,
         class_temperature = 2.,
         save_date_time = False,
-        save_best = False
+        save_best = False,
+        experimental_resample = False,
     ):
         super().__init__()
+
+        if torch_deterministic:
+            assert not bilinear, 'the deterministic (seeded) operation does not work with interpolation (PyTorch 1.7.1)'
+            torch.set_deterministic(True)
 
         if exists(seed):
             print(f'setting seed of {seed}')
@@ -237,9 +249,6 @@ class Imagine(nn.Module):
                 print('you can override this with --seed argument in the command line, or --random for a randomly chosen one')
             torch.manual_seed(seed)
 
-        if torch_deterministic:
-            assert not bilinear, 'the deterministic (seeded) operation does not work with interpolation (PyTorch 1.7.1)'
-            torch.set_deterministic(True)
 
         self.epochs = epochs
         self.iterations = iterations
@@ -248,7 +257,8 @@ class Imagine(nn.Module):
             image_size = image_size,
             bilinear = bilinear,
             max_classes = max_classes,
-            class_temperature = class_temperature
+            class_temperature = class_temperature,
+            experimental_resample = experimental_resample,
         ).cuda()
 
         self.model = model
@@ -328,9 +338,8 @@ class Imagine(nn.Module):
             self.open_folder = False
 
         image_pbar = tqdm(total=self.total_image_updates, desc='image update', position=2, leave=True)
-        pbar = trange(self.iterations, desc='   iteration', position=1, leave=True)
         for epoch in trange(self.epochs, desc = '      epochs', position=0, leave=True):
-            pbar.reset()
+            pbar = trange(self.iterations, desc='   iteration', position=1, leave=True)
             image_pbar.update(0)
             for i in pbar:
                 loss = self.train_step(epoch, i, image_pbar)
