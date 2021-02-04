@@ -328,9 +328,8 @@ class Imagine(nn.Module):
             self.open_folder = False
 
         image_pbar = tqdm(total=self.total_image_updates, desc='image update', position=2, leave=True)
-        pbar = trange(self.iterations, desc='   iteration', position=1, leave=True)
         for epoch in trange(self.epochs, desc = '      epochs', position=0, leave=True):
-            pbar.reset()
+            pbar = trange(self.iterations, desc='   iteration', position=1, leave=True)
             image_pbar.update(0)
             for i in pbar:
                 loss = self.train_step(epoch, i, image_pbar)
