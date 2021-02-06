@@ -34,6 +34,10 @@
 
 *balloons over the ruins of a city*
 
+<img src="./samples/the_death_of_the_lonesome_astronomer.png" width="250px"></img>
+
+*the death of the lonesome astronomer* - by <a href="https://github.com/moirage">moirage</a>
+
 ## Big Sleep
 
 <a href="https://twitter.com/advadnoun">Ryan Murdock</a> has done it again, combining OpenAI's <a href="https://github.com/openai/CLIP">CLIP</a> and the generator from a <a href="https://arxiv.org/abs/1809.11096">BigGAN</a>! This repository wraps up his work so it is easily accessible to anyone who owns a GPU.
