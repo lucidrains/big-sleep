@@ -291,6 +291,7 @@ class Imagine(nn.Module):
 
     def reset(self):
         self.model.reset()
+        self.model = self.model.cuda()
         self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
 
     def train_step(self, epoch, i, pbar=None):
