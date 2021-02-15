@@ -196,7 +196,7 @@ class BigSleep(nn.Module):
         latent_thres = self.model.latents.thresh_lat
 
         lat_loss =  torch.abs(1 - torch.std(latents, dim=1)).mean() + \
-                    torch.abs(torch.mean(latents)).mean() + \
+                    torch.abs(torch.mean(latents, dim = 1)).mean() + \
                     4 * torch.max(torch.square(latents).mean(), latent_thres)
 
         for array in latents:
