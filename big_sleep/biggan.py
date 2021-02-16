@@ -515,10 +515,11 @@ class Generator(nn.Module):
         z = z.view(-1, 4, 4, 16 * self.config.channel_width)
         z = z.permute(0, 3, 1, 2).contiguous()
 
-        for i, layer in enumerate(self.layers):
+        next_available_latent_index = 1
+        for layer in self.layers:
             if isinstance(layer, GenBlock):
-                z = layer(z, cond_vector[i+1].unsqueeze(0), truncation)
-                # z = layer(z, cond_vector[].unsqueeze(0), truncation)
+                z = layer(z, cond_vector[next_available_latent_index].unsqueeze(0), truncation)
+                next_available_latent_index += 1
             else:
                 z = layer(z)
 
