@@ -319,7 +319,7 @@ class Imagine(nn.Module):
         if (i + 1) % self.save_every == 0:
             with torch.no_grad():
                 self.model.model.latents.eval()
-                losses = sum(self.model(self.encoded_text))
+                losses = self.model(self.encoded_text)
                 top_score, best = torch.topk(losses[2], k = 1, largest = False)
                 image = self.model.model()[best].cpu()
                 self.model.model.latents.train()
