@@ -305,14 +305,14 @@ class Imagine(nn.Module):
         self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
 
     def train_step(self, epoch, i, pbar=None):
-        self.model.model.latents.train()
+        self.model.model.latents.cuda().train()
         total_loss = 0
 
         for _ in range(self.gradient_accumulate_every):
             losses = self.model(self.encoded_text)
             loss = sum(losses) / self.gradient_accumulate_every
             total_loss += loss
-            self.model.model.latents.cuda().update()
+            self.model.model.latents.cuda().train()
             loss.backward()
 
         self.optimizer.step()
