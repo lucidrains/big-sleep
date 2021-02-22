@@ -140,6 +140,7 @@ class Model(nn.Module):
 
     def forward(self):
         self.biggan.eval()
+        self.latents.eval()
         out = self.biggan(*self.latents(), 1)
         return (out + 1) / 2
 
@@ -175,15 +176,14 @@ class BigSleep(nn.Module):
 
     def forward(self, text_embed, return_loss = True):
         torch.cuda.empty_cache()
+        self.model.latents.cuda().train()
         width, num_cutouts = self.image_size, self.num_cutouts
 
         out = self.model()
-        out.latents.cuda().train()
 
         if not return_loss:
             return out
 
-        out.latents.cuda().eval()
         pieces = []
         for ch in range(num_cutouts):
             size = int(width * torch.zeros(1,).normal_(mean=.8, std=.3).clip(.5, .95))
@@ -203,7 +203,7 @@ class BigSleep(nn.Module):
 
         latents, soft_one_hot_classes = self.model.latents()
         num_latents = latents.shape[0]
-        latent_thres = self.model.latents.thresh_lat
+        latent_thres = self.model.latents.model.thresh_lat
 
         lat_loss =  torch.abs(1 - torch.std(latents, dim=1)).mean() + \
                     torch.abs(torch.mean(latents, dim = 1)).mean() + \
@@ -315,11 +315,14 @@ class Imagine(nn.Module):
             loss.backward()
 
         self.optimizer.step()
+        self.model.model.latents.train()
         self.model.model.latents.update()
         self.optimizer.zero_grad()
 
         if (i + 1) % self.save_every == 0:
             with torch.no_grad():
+
+                self.model.latents.cuda().eval()
                 top_score, best = torch.topk(losses[2], k = 1, largest = False)
                 image = self.model.model()[best].cpu()
 
