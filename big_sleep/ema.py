@@ -53,7 +53,3 @@ class EMA(nn.Module):
         if self.training:
             return self.model(*args, **kwargs)
         return self.average(*args, **kwargs)
-
-
-model = BigGAN.from_pretrained('biggan-deep-512')
-model = model.cuda().eval()
