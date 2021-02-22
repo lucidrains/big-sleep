@@ -1,9 +1,10 @@
+from big_sleep.ema import EMA
 import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.optim import Adam
 
-import torchvision
+# import torchvision
 from torchvision.utils import save_image
 
 import os
@@ -13,12 +14,12 @@ import signal
 from datetime import datetime
 from pathlib import Path
 from tqdm import tqdm, trange
-from collections import namedtuple
+# from collections import namedtuple
 
 from big_sleep.biggan import BigGAN
 from big_sleep.clip import load, tokenize, normalize_image
 
-from einops import rearrange
+# from einops import rearrange
 
 from .resample import resample
 
@@ -128,13 +129,14 @@ class Model(nn.Module):
         self.init_latents()
 
     def init_latents(self):
-        self.latents = Latents(
+        latents = Latents(
             num_latents = len(self.biggan.config.layers) + 1,
             num_classes = self.biggan.config.num_classes,
             z_dim = self.biggan.config.z_dim,
             max_classes = self.max_classes,
             class_temperature = self.class_temperature
         )
+        self.latents = EMA(latents, 0.99)
 
     def forward(self):
         self.biggan.eval()
@@ -172,13 +174,16 @@ class BigSleep(nn.Module):
         self.model.init_latents()
 
     def forward(self, text_embed, return_loss = True):
+        torch.cuda.empty_cache()
         width, num_cutouts = self.image_size, self.num_cutouts
 
         out = self.model()
+        out.latents.cuda().train()
 
         if not return_loss:
             return out
 
+        out.latents.cuda().eval()
         pieces = []
         for ch in range(num_cutouts):
             size = int(width * torch.zeros(1,).normal_(mean=.8, std=.3).clip(.5, .95))
@@ -310,6 +315,7 @@ class Imagine(nn.Module):
             loss.backward()
 
         self.optimizer.step()
+        self.model.model.latents.update()
         self.optimizer.zero_grad()
 
         if (i + 1) % self.save_every == 0:
