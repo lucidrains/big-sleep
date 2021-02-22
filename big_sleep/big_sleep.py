@@ -272,7 +272,7 @@ class Imagine(nn.Module):
         self.model = model
 
         self.lr = lr
-        self.optimizer = Adam(model.model.latents.parameters(), lr)
+        self.optimizer = Adam(model.model.latents.model.parameters(), lr)
         self.gradient_accumulate_every = gradient_accumulate_every
         self.save_every = save_every
 
