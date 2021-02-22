@@ -322,7 +322,7 @@ class Imagine(nn.Module):
         if (i + 1) % self.save_every == 0:
             with torch.no_grad():
 
-                self.model.latents.cuda().eval()
+                self.model.model.latents.cuda().eval()
                 top_score, best = torch.topk(losses[2], k = 1, largest = False)
                 image = self.model.model()[best].cpu()
 
