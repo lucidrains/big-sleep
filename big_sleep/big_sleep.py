@@ -314,15 +314,14 @@ class Imagine(nn.Module):
             total_loss += loss
             loss.backward()
 
-        self.optimizer.step()
         self.model.model.latents.train()
+        self.optimizer.step()
         self.model.model.latents.update()
         self.optimizer.zero_grad()
+        self.model.model.latents.eval()
 
         if (i + 1) % self.save_every == 0:
             with torch.no_grad():
-
-                self.model.model.latents.cuda().eval()
                 top_score, best = torch.topk(losses[2], k = 1, largest = False)
                 image = self.model.model()[best].cpu()
 
@@ -331,7 +330,6 @@ class Imagine(nn.Module):
                     pbar.update(1)
                 else:
                     print(f'image updated at "./{str(self.filename)}"')
-                    
 
                 if self.save_progress:
                     total_iterations = epoch * self.iterations + i
