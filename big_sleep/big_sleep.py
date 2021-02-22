@@ -136,7 +136,7 @@ class Model(nn.Module):
             max_classes = self.max_classes,
             class_temperature = self.class_temperature
         )
-        self.latents = EMA(latents, 0.99)
+        self.latents = EMA(latents, 0.99).cuda()
 
     def forward(self):
         self.biggan.eval()
@@ -305,17 +305,18 @@ class Imagine(nn.Module):
         self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
 
     def train_step(self, epoch, i, pbar=None):
+        self.model.model.latents.train()
         total_loss = 0
 
         for _ in range(self.gradient_accumulate_every):
             losses = self.model(self.encoded_text)
             loss = sum(losses) / self.gradient_accumulate_every
             total_loss += loss
+            self.model.model.latents.cuda().update()
             loss.backward()
 
-        self.model.model.latents.train()
         self.optimizer.step()
-        self.model.model.latents.update()
+        self.model.model.latents.cuda().update()
         self.optimizer.zero_grad()
 
         if (i + 1) % self.save_every == 0:
