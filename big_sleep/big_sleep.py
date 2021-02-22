@@ -140,7 +140,6 @@ class Model(nn.Module):
 
     def forward(self):
         self.biggan.eval()
-        self.latents.eval()
         out = self.biggan(*self.latents(), 1)
         return (out + 1) / 2
 
@@ -175,8 +174,6 @@ class BigSleep(nn.Module):
         self.model.init_latents()
 
     def forward(self, text_embed, return_loss = True):
-        torch.cuda.empty_cache()
-        self.model.latents.cuda().train()
         width, num_cutouts = self.image_size, self.num_cutouts
 
         out = self.model()
@@ -209,6 +206,8 @@ class BigSleep(nn.Module):
                     torch.abs(torch.mean(latents, dim = 1)).mean() + \
                     4 * torch.max(torch.square(latents).mean(), latent_thres)
 
+
+        self.model.latents.cuda().eval()
         for array in latents:
             mean = torch.mean(array)
             diffs = array - mean
@@ -318,7 +317,6 @@ class Imagine(nn.Module):
         self.optimizer.step()
         self.model.model.latents.update()
         self.optimizer.zero_grad()
-        self.model.model.latents.eval()
 
         if (i + 1) % self.save_every == 0:
             with torch.no_grad():
