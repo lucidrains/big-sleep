@@ -118,7 +118,9 @@ class Model(nn.Module):
         self,
         image_size,
         max_classes = None,
-        class_temperature = 2.
+        class_temperature = 2.,
+        ema_decay
+        = 0.99
     ):
         super().__init__()
         assert image_size in (128, 256, 512), 'image size must be one of 128, 256, or 512'
@@ -126,6 +128,9 @@ class Model(nn.Module):
 
         self.max_classes = max_classes
         self.class_temperature = class_temperature
+        self.ema_decay\
+            = ema_decay
+
         self.init_latents()
 
     def init_latents(self):
@@ -136,7 +141,8 @@ class Model(nn.Module):
             max_classes = self.max_classes,
             class_temperature = self.class_temperature
         )
-        self.latents = EMA(latents, 0.99)
+        self.latents = EMA(latents, self.ema_decay
+                           )
 
     def forward(self):
         self.biggan.eval()
@@ -155,6 +161,8 @@ class BigSleep(nn.Module):
         max_classes = None,
         class_temperature = 2.,
         experimental_resample = False,
+        ema_decay
+        = 0.99
     ):
         super().__init__()
         self.loss_coef = loss_coef
@@ -167,7 +175,10 @@ class BigSleep(nn.Module):
         self.model = Model(
             image_size = image_size,
             max_classes = max_classes,
-            class_temperature = class_temperature
+            class_temperature = class_temperature,
+            ema_decay
+            = ema_decay
+
         )
 
     def reset(self):
@@ -244,6 +255,8 @@ class Imagine(nn.Module):
         save_date_time = False,
         save_best = False,
         experimental_resample = False,
+        ema_decay
+        = 0.99
     ):
         super().__init__()
 
@@ -267,6 +280,9 @@ class Imagine(nn.Module):
             max_classes = max_classes,
             class_temperature = class_temperature,
             experimental_resample = experimental_resample,
+            ema_decay
+            = ema_decay
+
         ).cuda()
 
         self.model = model

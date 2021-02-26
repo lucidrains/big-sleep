@@ -24,15 +24,14 @@ class EMA(nn.Module):
 
     @torch.no_grad()
     def update(self):
-        if not self.training:
-            raise RuntimeError('Update should only be called during training')
+        assert self.training, 'Update should only be called during training'
 
         self.accum *= self.decay
 
         model_params = dict(self.model.named_parameters())
         biased_params = dict(self._biased.named_parameters())
         average_params = dict(self.average.named_parameters())
-        assert model_params.keys() == biased_params.keys() == average_params.keys()
+        assert model_params.keys() == biased_params.keys() == average_params.keys(), f'Model parameter keys incompatible with EMA stored parameter keys'
 
         for name, param in model_params.items():
             biased_params[name].mul_(self.decay)

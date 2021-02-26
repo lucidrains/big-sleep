@@ -24,6 +24,7 @@ def train(
     class_temperature = 2.,
     save_best = False,
     experimental_resample = False,
+    ema_decay = 0.99
 ):
     print(f'Starting up... v{__version__}')
 
@@ -48,6 +49,7 @@ def train(
         save_date_time = save_date_time,
         save_best = save_best,
         experimental_resample = experimental_resample,
+        ema_decay = ema_decay
     )
 
     if not overwrite and imagine.filename.exists():
