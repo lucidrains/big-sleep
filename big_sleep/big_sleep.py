@@ -1,9 +1,10 @@
+from big_sleep.ema import EMA
 import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.optim import Adam
 
-import torchvision
+# import torchvision
 from torchvision.utils import save_image
 
 import os
@@ -13,12 +14,12 @@ import signal
 from datetime import datetime
 from pathlib import Path
 from tqdm import tqdm, trange
-from collections import namedtuple
+# from collections import namedtuple
 
 from big_sleep.biggan import BigGAN
 from big_sleep.clip import load, tokenize, normalize_image
 
-from einops import rearrange
+# from einops import rearrange
 
 from .resample import resample
 
@@ -117,7 +118,9 @@ class Model(nn.Module):
         self,
         image_size,
         max_classes = None,
-        class_temperature = 2.
+        class_temperature = 2.,
+        ema_decay
+        = 0.99
     ):
         super().__init__()
         assert image_size in (128, 256, 512), 'image size must be one of 128, 256, or 512'
@@ -125,16 +128,21 @@ class Model(nn.Module):
 
         self.max_classes = max_classes
         self.class_temperature = class_temperature
+        self.ema_decay\
+            = ema_decay
+
         self.init_latents()
 
     def init_latents(self):
-        self.latents = Latents(
+        latents = Latents(
             num_latents = len(self.biggan.config.layers) + 1,
             num_classes = self.biggan.config.num_classes,
             z_dim = self.biggan.config.z_dim,
             max_classes = self.max_classes,
             class_temperature = self.class_temperature
         )
+        self.latents = EMA(latents, self.ema_decay
+                           )
 
     def forward(self):
         self.biggan.eval()
@@ -153,6 +161,8 @@ class BigSleep(nn.Module):
         max_classes = None,
         class_temperature = 2.,
         experimental_resample = False,
+        ema_decay
+        = 0.99
     ):
         super().__init__()
         self.loss_coef = loss_coef
@@ -165,7 +175,10 @@ class BigSleep(nn.Module):
         self.model = Model(
             image_size = image_size,
             max_classes = max_classes,
-            class_temperature = class_temperature
+            class_temperature = class_temperature,
+            ema_decay
+            = ema_decay
+
         )
 
     def reset(self):
@@ -198,11 +211,12 @@ class BigSleep(nn.Module):
 
         latents, soft_one_hot_classes = self.model.latents()
         num_latents = latents.shape[0]
-        latent_thres = self.model.latents.thresh_lat
+        latent_thres = self.model.latents.model.thresh_lat
 
         lat_loss =  torch.abs(1 - torch.std(latents, dim=1)).mean() + \
                     torch.abs(torch.mean(latents, dim = 1)).mean() + \
                     4 * torch.max(torch.square(latents).mean(), latent_thres)
+
 
         for array in latents:
             mean = torch.mean(array)
@@ -241,6 +255,8 @@ class Imagine(nn.Module):
         save_date_time = False,
         save_best = False,
         experimental_resample = False,
+        ema_decay
+        = 0.99
     ):
         super().__init__()
 
@@ -264,12 +280,15 @@ class Imagine(nn.Module):
             max_classes = max_classes,
             class_temperature = class_temperature,
             experimental_resample = experimental_resample,
+            ema_decay
+            = ema_decay
+
         ).cuda()
 
         self.model = model
 
         self.lr = lr
-        self.optimizer = Adam(model.model.latents.parameters(), lr)
+        self.optimizer = Adam(model.model.latents.model.parameters(), lr)
         self.gradient_accumulate_every = gradient_accumulate_every
         self.save_every = save_every
 
@@ -310,19 +329,22 @@ class Imagine(nn.Module):
             loss.backward()
 
         self.optimizer.step()
+        self.model.model.latents.update()
         self.optimizer.zero_grad()
 
         if (i + 1) % self.save_every == 0:
             with torch.no_grad():
+                self.model.model.latents.eval()
+                losses = self.model(self.encoded_text)
                 top_score, best = torch.topk(losses[2], k = 1, largest = False)
                 image = self.model.model()[best].cpu()
+                self.model.model.latents.train()
 
                 save_image(image, str(self.filename))
                 if pbar is not None:
                     pbar.update(1)
                 else:
                     print(f'image updated at "./{str(self.filename)}"')
-                    
 
                 if self.save_progress:
                     total_iterations = epoch * self.iterations + i
