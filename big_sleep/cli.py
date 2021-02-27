@@ -24,7 +24,7 @@ def train(
     class_temperature = 2.,
     save_best = False,
     experimental_resample = False,
-    ema_decay = 0.99
+    ema_decay = 0.5
 ):
     print(f'Starting up... v{__version__}')
 
