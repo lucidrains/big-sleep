@@ -1,10 +1,8 @@
-from big_sleep.ema import EMA
 import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.optim import Adam
 
-# import torchvision
 from torchvision.utils import save_image
 
 import os
@@ -14,14 +12,11 @@ import signal
 from datetime import datetime
 from pathlib import Path
 from tqdm import tqdm, trange
-# from collections import namedtuple
 
+from big_sleep.ema import EMA
+from big_sleep.resample import resample
 from big_sleep.biggan import BigGAN
 from big_sleep.clip import load, tokenize, normalize_image
-
-# from einops import rearrange
-
-from .resample import resample
 
 assert torch.cuda.is_available(), 'CUDA must be available in order to use Deep Daze'
 
@@ -119,8 +114,7 @@ class Model(nn.Module):
         image_size,
         max_classes = None,
         class_temperature = 2.,
-        ema_decay
-        = 0.99
+        ema_decay = 0.99
     ):
         super().__init__()
         assert image_size in (128, 256, 512), 'image size must be one of 128, 256, or 512'
@@ -176,9 +170,7 @@ class BigSleep(nn.Module):
             image_size = image_size,
             max_classes = max_classes,
             class_temperature = class_temperature,
-            ema_decay
-            = ema_decay
-
+            ema_decay = ema_decay
         )
 
     def reset(self):
@@ -255,8 +247,7 @@ class Imagine(nn.Module):
         save_date_time = False,
         save_best = False,
         experimental_resample = False,
-        ema_decay
-        = 0.99
+        ema_decay = 0.99
     ):
         super().__init__()
 
