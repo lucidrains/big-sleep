@@ -87,6 +87,44 @@ dream = Imagine(
 dream()
 ```
 
+> You can now train more than one phrase using the delimiter "\\"
+
+### Train on Multiple Phrases
+In this example we train on three phrases:
+- `an armchair in the form of pikachu` 
+- `an armchair imitating pikachu`
+- `abstract`,
+```python
+from big_sleep import Imagine
+
+dream = Imagine(
+    text = "an armchair in the form of pikachu\\an armchair imitating pikachu\\abstract",
+    lr = 5e-2,
+    save_every = 25,
+    save_progress = True
+)
+
+dream()
+```
+
+### Penalize certain prompts as well!
+In this example we train on the three phrases from before,
+**and** *penalize* the phrases `blur` and `zoom`. 
+- `abstract`,
+```python
+from big_sleep import Imagine
+
+dream = Imagine(
+    text = "an armchair in the form of pikachu\\an armchair imitating pikachu\\abstract",
+    text_min = "blur\\zoom",
+    lr = 5e-2,
+    save_every = 25,
+    save_progress = True
+)
+
+dream()
+```
+
 You can also set a new text by using the `.set_text(<str>)` command
 
 ```python
