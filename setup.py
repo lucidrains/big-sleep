@@ -16,7 +16,7 @@ setup(
   version = __version__,
   license='MIT',
   description = 'Big Sleep',
-  author = 'Phil Wang',
+  author = 'Ryan Murdock, Phil Wang',
   author_email = 'lucidrains@gmail.com',
   url = 'https://github.com/lucidrains/big-sleep',
   keywords = [
