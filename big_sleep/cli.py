@@ -6,6 +6,7 @@ from .version import __version__;
 
 def train(
     text,
+    text_min="",
     lr = .07,
     image_size = 512,
     gradient_accumulate_every = 1,
@@ -33,6 +34,7 @@ def train(
 
     imagine = Imagine(
         text,
+        text_min=text_min,
         lr = lr,
         image_size = image_size,
         gradient_accumulate_every = gradient_accumulate_every,
