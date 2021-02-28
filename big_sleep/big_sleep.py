@@ -330,7 +330,10 @@ class Imagine(nn.Module):
     def set_text(self, text, text_min=""):
         self.text = text
         self.text_min = text_min
-        textpath = underscorify(text[:128])
+        textpath = text[:255]
+        if len(text_min) > 0:
+            textpath = textpath + "_wout_" + text_min[:255]
+        textpath = underscorify(textpath)
         if self.save_date_time:
             textpath = datetime.now().strftime("%y%m%d-%H%M%S-") + textpath
 

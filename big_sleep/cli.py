@@ -34,6 +34,7 @@ def train(
 
     imagine = Imagine(
         text,
+        text_min=text_min,
         lr = lr,
         image_size = image_size,
         gradient_accumulate_every = gradient_accumulate_every,
