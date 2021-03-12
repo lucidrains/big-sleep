@@ -1,16 +1,17 @@
-import torch
-import torch.nn.functional as F
-from torch import nn
-from torch.optim import Adam
-
-from torchvision.utils import save_image
-
 import os
 import sys
 import subprocess
 import signal
 from datetime import datetime
 from pathlib import Path
+
+import torch
+import torch.nn.functional as F
+from torch import nn
+from torch.optim import Adam
+from torchvision.utils import save_image
+import torchvision.transforms as T
+from PIL import Image
 from tqdm import tqdm, trange
 
 from big_sleep.ema import EMA
@@ -18,7 +19,7 @@ from big_sleep.resample import resample
 from big_sleep.biggan import BigGAN
 from big_sleep.clip import load, tokenize, normalize_image
 
-assert torch.cuda.is_available(), 'CUDA must be available in order to use Deep Daze'
+assert torch.cuda.is_available(), 'CUDA must be available in order to use Big Sleep'
 
 # graceful keyboard interrupt
 
@@ -60,11 +61,13 @@ def open_folder(path):
         pass
 
 
-import string, re
-def underscorify(value):
-  no_punctuation = str(value.translate(str.maketrans('', '', string.punctuation)))
-  spaces_to_one_underline = re.sub(r'[-\s]+', '_', no_punctuation).strip('-_') # strip gets rid of leading or trailing underscores
-  return spaces_to_one_underline
+def underscorify(text):
+    no_punctuation = text.replace(".", "")
+    spaces_to_underline = no_punctuation.replace(" ", "_")
+    no_lead_trailing_underscores = spaces_to_underline.strip('-_')
+    no_commas = no_lead_trailing_underscores.replace(",", "")
+    return no_commas
+
 # tensor helpers
 
 def differentiable_topk(x, k, temperature=1.):
@@ -81,6 +84,20 @@ def differentiable_topk(x, k, temperature=1.):
 
     topks = torch.cat(topk_tensors, dim=-1)
     return topks.reshape(n, k, dim).sum(dim = 1)
+
+
+def create_clip_img_transform(image_width):
+    clip_mean = [0.48145466, 0.4578275, 0.40821073]
+    clip_std = [0.26862954, 0.26130258, 0.27577711]
+    transform = T.Compose([
+                    #T.ToPILImage(),
+                    T.Resize(image_width),
+                    T.CenterCrop((image_width, image_width)),
+                    T.ToTensor(),
+                    T.Normalize(mean=clip_mean, std=clip_std)
+            ])
+    return transform
+
 
 # load clip
 
@@ -148,7 +165,7 @@ class Model(nn.Module):
         out = self.biggan(*self.latents(), 1)
         return (out + 1) / 2
 
-# load siren
+
 class BigSleep(nn.Module):
     def __init__(
         self,
@@ -184,8 +201,6 @@ class BigSleep(nn.Module):
         if text_type == "min":
             sign = 1
         return sign * self.loss_coef * torch.cosine_similarity(text_embed, img_embed, dim = -1).mean()
-
-
 
     def forward(self, text_embeds, text_min_embeds=[], return_loss = True):
         width, num_cutouts = self.image_size, self.num_cutouts
@@ -240,13 +255,15 @@ class BigSleep(nn.Module):
         for txt_min_embed in text_min_embeds:
             results.append(self.sim_txt_to_img(txt_min_embed, image_embed, "min"))
         sim_loss = sum(results).mean()
-        return (lat_loss, cls_loss, sim_loss)
+        return out, (lat_loss, cls_loss, sim_loss)
 
 class Imagine(nn.Module):
     def __init__(
         self,
-        text,
         *,
+        text=None,
+        img=None,
+        encoding=None,
         text_min = "",
         lr = .07,
         image_size = 512,
@@ -264,7 +281,8 @@ class Imagine(nn.Module):
         save_date_time = False,
         save_best = False,
         experimental_resample = False,
-        ema_decay = 0.99
+        ema_decay = 0.99,
+        num_cutouts=128,
     ):
         super().__init__()
 
@@ -288,8 +306,8 @@ class Imagine(nn.Module):
             max_classes = max_classes,
             class_temperature = class_temperature,
             experimental_resample = experimental_resample,
-            ema_decay
-            = ema_decay
+            ema_decay = ema_decay,
+            num_cutouts = num_cutouts,
 
         ).cuda()
 
@@ -312,34 +330,71 @@ class Imagine(nn.Module):
             "max": [],
             "min": []
         }
-        self.set_text(text, text_min)
-
-    def encode_one_phrase(self, phrase):
-        return perceptor.encode_text(tokenize(f'''{phrase}''').cuda()).detach().clone()
+        self.set_clip_encoding(text=text, img=img, encoding=encoding, text_min=text_min)
+        self.clip_transform = create_clip_img_transform(perceptor.input_resolution.item())
     
-    def encode_multiple_phrases(self, text, text_type="max"):
-        if len(text) > 0 and "\\" in text:
-            self.encoded_texts[text_type] = [self.encode_one_phrase(prompt_min) for prompt_min in text.split("\\")]
+    def create_clip_encoding(self, text=None, img=None, encoding=None):
+        self.text = text
+        self.img = img
+        if encoding is not None:
+            encoding = encoding.cuda()
+        #elif self.create_story:
+        #    encoding = self.update_story_encoding(epoch=0, iteration=1)
+        elif text is not None and img is not None:
+            encoding = (self.create_text_encoding(text) + self.create_img_encoding(img)) / 2
+        elif text is not None:
+            encoding = self.create_text_encoding(text)
+        elif img is not None:
+            encoding = self.create_img_encoding(img)
+        return encoding
+
+    def create_text_encoding(self, text):
+        tokenized_text = tokenize(text).cuda()
+        with torch.no_grad():
+            text_encoding = perceptor.encode_text(tokenized_text).detach()
+        return text_encoding
+    
+    def create_img_encoding(self, img):
+        if isinstance(img, str):
+            img = Image.open(img)
+        normed_img = self.clip_transform(img).unsqueeze(0).cuda()
+        with torch.no_grad():
+            img_encoding = perceptor.encode_image(normed_img).detach()
+        return img_encoding
+    
+    
+    def encode_multiple_phrases(self, text, img=None, encoding=None, text_type="max"):
+        if text is not None and "\\" in text:
+            self.encoded_texts[text_type] = [self.create_clip_encoding(text=prompt_min, img=img, encoding=encoding) for prompt_min in text.split("\\")]
         else:
-            self.encoded_texts[text_type] = [self.encode_one_phrase(text)]
+            self.encoded_texts[text_type] = [self.create_clip_encoding(text=text, img=img, encoding=encoding)]
 
-    def encode_max_and_min(self, text, text_min=""):
-        self.encode_multiple_phrases(text)
-        self.encode_multiple_phrases(text_min, "min")
+    def encode_max_and_min(self, text, img=None, encoding=None, text_min=""):
+        self.encode_multiple_phrases(text, img=img, encoding=encoding)
+        if text_min is not None and text_min != "":
+            self.encode_multiple_phrases(text_min, img=img, encoding=encoding, text_type="min")
 
-    def set_text(self, text, text_min=""):
+    def set_clip_encoding(self, text=None, img=None, encoding=None, text_min=""):
         self.text = text
         self.text_min = text_min
-        textpath = text[:255]
+        if text is not None and (img is not None and isinstance(img, str)):
+            text_path = text + "_" + img
+        elif text is not None:
+            text_path = text
+        elif img is not None and isinstance(img, str):
+            text_path = img
+        else:
+            text_path = "custom_encoding"
+        text_path = text_path[:255]
         if len(text_min) > 0:
-            textpath = textpath + "_wout_" + text_min[:255]
-        textpath = underscorify(textpath)
+            text_path = text_path + "_wout_" + text_min[:255]
+        text_path = underscorify(text_path)
         if self.save_date_time:
-            textpath = datetime.now().strftime("%y%m%d-%H%M%S-") + textpath
+            text_path = datetime.now().strftime("%y%m%d-%H%M%S-") + text_path
 
-        self.textpath = textpath
-        self.filename = Path(f'./{textpath}.png')
-        self.encode_max_and_min(text, text_min) # Tokenize and encode each prompt
+        self.text_path = text_path
+        self.filename = Path(f'./{text_path}.png')
+        self.encode_max_and_min(text, img=img, encoding=encoding, text_min=text_min) # Tokenize and encode each prompt
 
 
     def reset(self):
@@ -351,7 +406,7 @@ class Imagine(nn.Module):
         total_loss = 0
 
         for _ in range(self.gradient_accumulate_every):
-            losses = self.model(self.encoded_texts["max"], self.encoded_texts["min"])
+            out, losses = self.model(self.encoded_texts["max"], self.encoded_texts["min"])
             loss = sum(losses) / self.gradient_accumulate_every
             total_loss += loss
             loss.backward()
@@ -363,8 +418,8 @@ class Imagine(nn.Module):
         if (i + 1) % self.save_every == 0:
             with torch.no_grad():
                 self.model.model.latents.eval()
-                losses = self.model(self.encoded_texts["max"], self.encoded_texts["min"])
-                top_score, best = torch.topk(losses[2], k = 1, largest = False)
+                out, losses = self.model(self.encoded_texts["max"], self.encoded_texts["min"])
+                top_score, best = torch.topk(losses[2], k=1, largest=False)
                 image = self.model.model()[best].cpu()
                 self.model.model.latents.train()
 
@@ -377,20 +432,22 @@ class Imagine(nn.Module):
                 if self.save_progress:
                     total_iterations = epoch * self.iterations + i
                     num = total_iterations // self.save_every
-                    save_image(image, Path(f'./{self.textpath}.{num}.png'))
+                    save_image(image, Path(f'./{self.text_path}.{num}.png'))
 
                 if self.save_best and top_score.item() < self.current_best_score:
                     self.current_best_score = top_score.item()
-                    save_image(image, Path(f'./{self.textpath}.best.png'))
+                    save_image(image, Path(f'./{self.text_path}.best.png'))
 
-        return total_loss
+        return out, total_loss
 
     def forward(self):
         penalizing = ""
         if len(self.text_min) > 0:
             penalizing = f'penalizing "{self.text_min}"'
         print(f'Imagining "{self.text}" {penalizing}...')
-        self.model(self.encoded_texts["max"][0]) # one warmup step due to issue with CLIP and CUDA
+        
+        with torch.no_grad():
+            self.model(self.encoded_texts["max"][0]) # one warmup step due to issue with CLIP and CUDA
 
         if self.open_folder:
             open_folder('./')
@@ -401,7 +458,7 @@ class Imagine(nn.Module):
             pbar = trange(self.iterations, desc='   iteration', position=1, leave=True)
             image_pbar.update(0)
             for i in pbar:
-                loss = self.train_step(epoch, i, image_pbar)
+                out, loss = self.train_step(epoch, i, image_pbar)
                 pbar.set_description(f'loss: {loss.item():04.2f}')
 
                 if terminate:
