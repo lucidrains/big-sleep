@@ -9,6 +9,9 @@ import os
 import sys
 import subprocess
 import signal
+import string
+import re
+
 from datetime import datetime
 from pathlib import Path
 from tqdm import tqdm, trange
@@ -16,7 +19,7 @@ from tqdm import tqdm, trange
 from big_sleep.ema import EMA
 from big_sleep.resample import resample
 from big_sleep.biggan import BigGAN
-from big_sleep.clip import load, tokenize, normalize_image
+from big_sleep.clip import load, tokenize
 
 assert torch.cuda.is_available(), 'CUDA must be available in order to use Deep Daze'
 
@@ -60,11 +63,11 @@ def open_folder(path):
         pass
 
 
-import string, re
 def underscorify(value):
   no_punctuation = str(value.translate(str.maketrans('', '', string.punctuation)))
   spaces_to_one_underline = re.sub(r'[-\s]+', '_', no_punctuation).strip('-_') # strip gets rid of leading or trailing underscores
   return spaces_to_one_underline
+
 # tensor helpers
 
 def differentiable_topk(x, k, temperature=1.):
@@ -84,7 +87,7 @@ def differentiable_topk(x, k, temperature=1.):
 
 # load clip
 
-perceptor, preprocess = load()
+perceptor, normalize_image = load('ViT-B/32', jit = False)
 
 # load biggan
 
