@@ -4,8 +4,10 @@ from big_sleep import Imagine, version
 from pathlib import Path
 from .version import __version__;
 
+
 def train(
-    text,
+    text=None,
+    img=None,
     text_min="",
     lr = .07,
     image_size = 512,
@@ -25,7 +27,9 @@ def train(
     class_temperature = 2.,
     save_best = False,
     experimental_resample = False,
-    ema_decay = 0.5
+    ema_decay = 0.5,
+    num_cutouts = 128,
+    center_bias = False,
 ):
     print(f'Starting up... v{__version__}')
 
@@ -33,7 +37,8 @@ def train(
         seed = rnd.randint(0, 1e6)
 
     imagine = Imagine(
-        text,
+        text=text,
+        img=img,
         text_min=text_min,
         lr = lr,
         image_size = image_size,
@@ -51,7 +56,9 @@ def train(
         save_date_time = save_date_time,
         save_best = save_best,
         experimental_resample = experimental_resample,
-        ema_decay = ema_decay
+        ema_decay = ema_decay,
+        num_cutouts = num_cutouts,
+        center_bias = center_bias,
     )
 
     if not overwrite and imagine.filename.exists():

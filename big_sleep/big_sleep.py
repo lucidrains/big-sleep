@@ -316,8 +316,8 @@ class Imagine(nn.Module):
         save_best = False,
         experimental_resample = False,
         ema_decay = 0.99,
-        num_cutouts=128,
-        center_bias=False,
+        num_cutouts = 128,
+        center_bias = False,
     ):
         super().__init__()
 
