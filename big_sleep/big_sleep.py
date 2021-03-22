@@ -4,6 +4,7 @@ import subprocess
 import signal
 from datetime import datetime
 from pathlib import Path
+import random
 
 import torch
 import torch.nn.functional as F
@@ -61,12 +62,20 @@ def open_folder(path):
         pass
 
 
-def underscorify(text):
-    no_punctuation = text.replace(".", "")
-    spaces_to_underline = no_punctuation.replace(" ", "_")
-    no_lead_trailing_underscores = spaces_to_underline.strip('-_')
-    no_commas = no_lead_trailing_underscores.replace(",", "")
-    return no_commas
+def create_text_path(text=None, img=None, encoding=None):
+    input_name = ""
+    if text is not None:
+        input_name += text
+    if img is not None:
+        if isinstance(img, str):
+            img_name = "".join(img.split(".")[:-1]) # replace spaces by underscores, remove img extension
+            img_name = img_name.split("/")[-1]  # only take img name, not path
+        else:
+            img_name = "PIL_img"
+        input_name += "_" + img_name
+    if encoding is not None:
+        input_name = "your_encoding"
+    return input_name.replace("-", "_").replace(",", "").replace(" ", "_").strip('-_')[:255]
 
 # tensor helpers
 
@@ -98,6 +107,25 @@ def create_clip_img_transform(image_width):
             ])
     return transform
 
+
+def rand_cutout(image, size, center_bias=False, center_focus=2):
+    width = image.shape[-1]
+    min_offset = 0
+    max_offset = width - size
+    if center_bias:
+        # sample around image center
+        center = max_offset / 2
+        std = center / center_focus
+        offset_x = int(random.gauss(mu=center, sigma=std))
+        offset_y = int(random.gauss(mu=center, sigma=std))
+        # resample uniformly if over boundaries
+        offset_x = random.randint(min_offset, max_offset) if (offset_x > max_offset or offset_x < min_offset) else offset_x
+        offset_y = random.randint(min_offset, max_offset) if (offset_y > max_offset or offset_y < min_offset) else offset_y
+    else:
+        offset_x = random.randint(min_offset, max_offset)
+        offset_y = random.randint(min_offset, max_offset)
+    cutout = image[:, :, offset_x:offset_x + size, offset_y:offset_y + size]
+    return cutout
 
 # load clip
 
@@ -176,13 +204,15 @@ class BigSleep(nn.Module):
         max_classes = None,
         class_temperature = 2.,
         experimental_resample = False,
-        ema_decay = 0.99
+        ema_decay = 0.99,
+        center_bias = False,
     ):
         super().__init__()
         self.loss_coef = loss_coef
         self.image_size = image_size
         self.num_cutouts = num_cutouts
         self.experimental_resample = experimental_resample
+        self.center_bias = center_bias
 
         self.interpolation_settings = {'mode': 'bilinear', 'align_corners': False} if bilinear else {'mode': 'nearest'}
 
@@ -212,10 +242,10 @@ class BigSleep(nn.Module):
 
         pieces = []
         for ch in range(num_cutouts):
+            # sample cutout size
             size = int(width * torch.zeros(1,).normal_(mean=.8, std=.3).clip(.5, .95))
-            offsetx = torch.randint(0, width - size, ())
-            offsety = torch.randint(0, width - size, ())
-            apper = out[:, :, offsetx:offsetx + size, offsety:offsety + size]
+            # get cutout
+            apper = rand_cutout(out, size, center_bias=self.center_bias)
             if (self.experimental_resample):
                 apper = resample(apper, (224, 224))
             else:
@@ -257,6 +287,7 @@ class BigSleep(nn.Module):
         sim_loss = sum(results).mean()
         return out, (lat_loss, cls_loss, sim_loss)
 
+
 class Imagine(nn.Module):
     def __init__(
         self,
@@ -283,6 +314,7 @@ class Imagine(nn.Module):
         experimental_resample = False,
         ema_decay = 0.99,
         num_cutouts=128,
+        center_bias=False,
     ):
         super().__init__()
 
@@ -308,7 +340,7 @@ class Imagine(nn.Module):
             experimental_resample = experimental_resample,
             ema_decay = ema_decay,
             num_cutouts = num_cutouts,
-
+            center_bias = center_bias,
         ).cuda()
 
         self.model = model
@@ -330,8 +362,10 @@ class Imagine(nn.Module):
             "max": [],
             "min": []
         }
-        self.set_clip_encoding(text=text, img=img, encoding=encoding, text_min=text_min)
+        # create img transform
         self.clip_transform = create_clip_img_transform(perceptor.input_resolution.item())
+        # create starting encoding
+        self.set_clip_encoding(text=text, img=img, encoding=encoding, text_min=text_min)
     
     def create_clip_encoding(self, text=None, img=None, encoding=None):
         self.text = text
@@ -377,25 +411,16 @@ class Imagine(nn.Module):
     def set_clip_encoding(self, text=None, img=None, encoding=None, text_min=""):
         self.text = text
         self.text_min = text_min
-        if text is not None and (img is not None and isinstance(img, str)):
-            text_path = text + "_" + img
-        elif text is not None:
-            text_path = text
-        elif img is not None and isinstance(img, str):
-            text_path = img
-        else:
-            text_path = "custom_encoding"
-        text_path = text_path[:255]
+        
         if len(text_min) > 0:
-            text_path = text_path + "_wout_" + text_min[:255]
-        text_path = underscorify(text_path)
+            text = text + "_wout_" + text_min[:255] if text is not None else "wout_" + text_min[:255]
+        text_path = create_text_path(text=text, img=img, encoding=encoding)
         if self.save_date_time:
             text_path = datetime.now().strftime("%y%m%d-%H%M%S-") + text_path
 
         self.text_path = text_path
         self.filename = Path(f'./{text_path}.png')
         self.encode_max_and_min(text, img=img, encoding=encoding, text_min=text_min) # Tokenize and encode each prompt
-
 
     def reset(self):
         self.model.reset()
@@ -444,7 +469,7 @@ class Imagine(nn.Module):
         penalizing = ""
         if len(self.text_min) > 0:
             penalizing = f'penalizing "{self.text_min}"'
-        print(f'Imagining "{self.text}" {penalizing}...')
+        print(f'Imagining "{self.text_path}" {penalizing}...')
         
         with torch.no_grad():
             self.model(self.encoded_texts["max"][0]) # one warmup step due to issue with CLIP and CUDA
