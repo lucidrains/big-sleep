@@ -2,6 +2,9 @@ import os
 import sys
 import subprocess
 import signal
+import string
+import re
+
 from datetime import datetime
 from pathlib import Path
 import random
@@ -18,7 +21,7 @@ from tqdm import tqdm, trange
 from big_sleep.ema import EMA
 from big_sleep.resample import resample
 from big_sleep.biggan import BigGAN
-from big_sleep.clip import load, tokenize, normalize_image
+from big_sleep.clip import load, tokenize
 
 assert torch.cuda.is_available(), 'CUDA must be available in order to use Big Sleep'
 
@@ -129,7 +132,7 @@ def rand_cutout(image, size, center_bias=False, center_focus=2):
 
 # load clip
 
-perceptor, preprocess = load()
+perceptor, normalize_image = load('ViT-B/32', jit = False)
 
 # load biggan
 
