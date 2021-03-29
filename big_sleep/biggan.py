@@ -403,7 +403,7 @@ class BigGANBatchNorm(nn.Module):
             self.bias = torch.nn.Parameter(torch.Tensor(num_features))
 
     def forward(self, x, truncation, condition_vector=None):
-        # Retreive pre-computed statistics associated to this truncation
+        # Retrieve pre-computed statistics associated to this truncation
         coef, start_idx = math.modf(truncation / self.step_size)
         start_idx = int(start_idx)
         if coef != 0.0:  # Interpolate
