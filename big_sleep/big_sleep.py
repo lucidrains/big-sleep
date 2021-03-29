@@ -127,7 +127,7 @@ class Model(nn.Module):
     ):
         super().__init__()
         assert image_size in (128, 256, 512), 'image size must be one of 128, 256, or 512'
-
+        self.biggan = BigGAN.from_pretrained(f'biggan-deep-{image_size}')
         self.max_classes = max_classes
         self.class_temperature = class_temperature
         self.ema_decay\
