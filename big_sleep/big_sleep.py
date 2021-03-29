@@ -21,7 +21,7 @@ from big_sleep.resample import resample
 from big_sleep.biggan import BigGAN
 from big_sleep.clip import load, tokenize
 
-assert torch.cuda.is_available(), 'CUDA must be available in order to use Deep Daze'
+assert torch.cuda.is_available(), 'CUDA must be available in order to use Big Sleep'
 
 # graceful keyboard interrupt
 
@@ -128,7 +128,6 @@ class Model(nn.Module):
         super().__init__()
         assert image_size in (128, 256, 512), 'image size must be one of 128, 256, or 512'
         self.biggan = BigGAN.from_pretrained(f'biggan-deep-{image_size}')
-
         self.max_classes = max_classes
         self.class_temperature = class_temperature
         self.ema_decay\
