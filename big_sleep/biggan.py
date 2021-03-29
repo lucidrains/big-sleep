@@ -577,26 +577,3 @@ class BigGAN(nn.Module):
 
         z = self.generator(cond_vector, truncation)
         return z
-
-def one_hot_from_int(int_or_list, batch_size=1):
-    """ Create a one-hot vector from a class index or a list of class indices.
-        Params:
-            int_or_list: int, or list of int, of the imagenet classes (between 0 and 999)
-            batch_size: batch size.
-                If int_or_list is an int create a batch of identical classes.
-                If int_or_list is a list, we should have `len(int_or_list) == batch_size`
-        Output:
-            array of shape (batch_size, 1000)
-    """
-    if isinstance(int_or_list, int):
-        int_or_list = [int_or_list]
-
-    if len(int_or_list) == 1 and batch_size > 1:
-        int_or_list = [int_or_list[0]] * batch_size
-
-    assert batch_size == len(int_or_list)
-
-    array = np.zeros((batch_size, 1000), dtype=np.float32)
-    for i, j in enumerate(int_or_list):
-        array[i, j] = 1.0
-    return array
