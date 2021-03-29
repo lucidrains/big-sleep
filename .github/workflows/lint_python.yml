@@ -9,7 +9,7 @@ jobs:
       - run: pip install black codespell flake8 isort mypy pytest pyupgrade safety
       - run: black --check . || true
       - run: codespell --quiet-level=2 --skip="*.txt" || true
-      - run: flake8 . --count --show-source --statistics
+      - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
       - run: isort --check-only --profile black . || true
       - run: pip install -r requirements.txt || true  # There are in setup.py
       - run: pip install einops fire ftfy pytorch-pretrained-biggan regex torch torchvision tqdm
