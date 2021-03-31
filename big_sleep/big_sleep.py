@@ -78,7 +78,7 @@ def create_text_path(text=None, img=None, encoding=None):
         input_name += "_" + img_name
     if encoding is not None:
         input_name = "your_encoding"
-    return input_name.replace("-", "_").replace(",", "").replace(" ", "_").strip('-_')[:255]
+    return input_name.replace("-", "_").replace(",", "").replace(" ", "_").replace("|", "--").strip('-_')[:255]
 
 # tensor helpers
 
