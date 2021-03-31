@@ -365,7 +365,7 @@ class Imagine(nn.Module):
             "min": []
         }
         # create img transform
-        self.clip_transform = create_clip_img_transform(perceptor.input_resolution.item())
+        self.clip_transform = create_clip_img_transform(224)
         # create starting encoding
         self.set_clip_encoding(text=text, img=img, encoding=encoding, text_min=text_min)
     
