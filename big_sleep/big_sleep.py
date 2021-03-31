@@ -407,8 +407,8 @@ class Imagine(nn.Module):
     
     
     def encode_multiple_phrases(self, text, img=None, encoding=None, text_type="max"):
-        if text is not None and "\\" in text:
-            self.encoded_texts[text_type] = [self.create_clip_encoding(text=prompt_min, img=img, encoding=encoding) for prompt_min in text.split("\\")]
+        if text is not None and "|" in text:
+            self.encoded_texts[text_type] = [self.create_clip_encoding(text=prompt_min, img=img, encoding=encoding) for prompt_min in text.split("|")]
         else:
             self.encoded_texts[text_type] = [self.create_clip_encoding(text=text, img=img, encoding=encoding)]
 
