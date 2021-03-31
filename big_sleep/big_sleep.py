@@ -308,6 +308,7 @@ class Imagine(nn.Module):
         bilinear = False,
         open_folder = True,
         seed = None,
+        append_seed = False,
         torch_deterministic = False,
         max_classes = None,
         class_temperature = 2.,
@@ -324,12 +325,14 @@ class Imagine(nn.Module):
             assert not bilinear, 'the deterministic (seeded) operation does not work with interpolation (PyTorch 1.7.1)'
             torch.set_deterministic(True)
 
+        self.seed = seed
+        self.append_seed = append_seed
+
         if exists(seed):
             print(f'setting seed of {seed}')
             if seed == 0:
                 print('you can override this with --seed argument in the command line, or --random for a randomly chosen one')
             torch.manual_seed(seed)
-
 
         self.epochs = epochs
         self.iterations = iterations
@@ -369,6 +372,10 @@ class Imagine(nn.Module):
         # create starting encoding
         self.set_clip_encoding(text=text, img=img, encoding=encoding, text_min=text_min)
     
+    @property
+    def seed_suffix(self):
+        return f'.{self.seed}' if self.append_seed and exists(self.seed) else ''
+
     def create_clip_encoding(self, text=None, img=None, encoding=None):
         self.text = text
         self.img = img
@@ -421,7 +428,7 @@ class Imagine(nn.Module):
             text_path = datetime.now().strftime("%y%m%d-%H%M%S-") + text_path
 
         self.text_path = text_path
-        self.filename = Path(f'./{text_path}.png')
+        self.filename = Path(f'./{text_path}{self.seed_suffix}.png')
         self.encode_max_and_min(text, img=img, encoding=encoding, text_min=text_min) # Tokenize and encode each prompt
 
     def reset(self):
@@ -459,11 +466,11 @@ class Imagine(nn.Module):
                 if self.save_progress:
                     total_iterations = epoch * self.iterations + i
                     num = total_iterations // self.save_every
-                    save_image(image, Path(f'./{self.text_path}.{num}.png'))
+                    save_image(image, Path(f'./{self.text_path}.{num}{self.seed_suffix}.png'))
 
                 if self.save_best and top_score.item() < self.current_best_score:
                     self.current_best_score = top_score.item()
-                    save_image(image, Path(f'./{self.text_path}.best.png'))
+                    save_image(image, Path(f'./{self.text_path}{self.seed_suffix}.best.png'))
 
         return out, total_loss
 
