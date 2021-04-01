@@ -46,6 +46,11 @@
 
 *demon fire* - by <a href="https://github.com/WiseNat">WiseNat</a>
 
+<img src="./samples/an_asteroid_impact_on_earth.png" width="256px"></img>
+
+*An asteroid impact on earth* - by <a href="https://github.com/LtqxWYEG">LtqxWYEG</a>
+
+
 ## Big Sleep
 
 <a href="https://twitter.com/advadnoun">Ryan Murdock</a> has done it again, combining OpenAI's <a href="https://github.com/openai/CLIP">CLIP</a> and the generator from a <a href="https://arxiv.org/abs/1809.11096">BigGAN</a>! This repository wraps up his work so it is easily accessible to anyone who owns a GPU.
