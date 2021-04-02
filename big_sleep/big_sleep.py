@@ -376,6 +376,9 @@ class Imagine(nn.Module):
     def seed_suffix(self):
         return f'.{self.seed}' if self.append_seed and exists(self.seed) else ''
 
+    def set_text(self, text):
+        self.set_clip_encoding(text = text)
+
     def create_clip_encoding(self, text=None, img=None, encoding=None):
         self.text = text
         self.img = img
