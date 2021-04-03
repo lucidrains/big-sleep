@@ -421,6 +421,7 @@ class Imagine(nn.Module):
             self.encode_multiple_phrases(text_min, img=img, encoding=encoding, text_type="min")
 
     def set_clip_encoding(self, text=None, img=None, encoding=None, text_min=""):
+        self.current_best_score = 0
         self.text = text
         self.text_min = text_min
         
