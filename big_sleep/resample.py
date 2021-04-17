@@ -1,7 +1,7 @@
 """Good differentiable image resampling for PyTorch."""
 
-from functools import update_wrapper
 import math
+from functools import update_wrapper
 
 import torch
 from torch.nn import functional as F

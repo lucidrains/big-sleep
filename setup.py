@@ -1,5 +1,6 @@
 import sys
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 sys.path[0:0] = ['big_sleep']
 from version import __version__

@@ -1,23 +1,23 @@
 # this code is a copy from huggingface
 # with some minor modifications
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import math
-import json
 import copy
+import json
 import logging
+import math
 import os
 import shutil
+import sys
 import tempfile
 from functools import wraps
 from hashlib import sha256
-import sys
 from io import open
 
 import boto3
 import requests
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from botocore.exceptions import ClientError
 from tqdm import tqdm
 

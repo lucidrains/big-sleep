@@ -1,8 +1,11 @@
-import fire
 import random as rnd
-from big_sleep import Imagine, version
 from pathlib import Path
-from .version import __version__;
+
+import fire
+
+from big_sleep import Imagine, version
+
+from .version import __version__
 
 
 def train(
