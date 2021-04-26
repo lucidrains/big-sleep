@@ -143,11 +143,19 @@ class Latents(torch.nn.Module):
         num_classes = 1000,
         z_dim = 128,
         max_classes = None,
-        class_temperature = 2.
+        class_temperature = 2.,
+        saved_latents_filepath = None
     ):
         super().__init__()
-        self.normu = torch.nn.Parameter(torch.zeros(num_latents, z_dim).normal_(std = 1))
-        self.cls = torch.nn.Parameter(torch.zeros(num_latents, num_classes).normal_(mean = -3.9, std = .3))
+        if saved_latents_filepath is None:
+            self.normu = torch.nn.Parameter(torch.zeros(num_latents, z_dim).normal_(std = 1))
+            self.cls = torch.nn.Parameter(torch.zeros(num_latents, num_classes).normal_(mean = -3.9, std = .3))
+        else:
+            print("loading latents from" + saved_latents_filepath)
+            lats = torch.load(saved_latents_filepath)
+            self.normu = lats.model.normu
+            self.cls = lats.model.cls
+
         self.register_buffer('thresh_lat', torch.tensor(1))
 
         assert not exists(max_classes) or max_classes > 0 and max_classes <= num_classes, f'max_classes must be between 0 and {num_classes}'
@@ -168,7 +176,8 @@ class Model(nn.Module):
         image_size,
         max_classes = None,
         class_temperature = 2.,
-        ema_decay = 0.99
+        ema_decay = 0.99,
+        saved_latents_filepath = None
     ):
         super().__init__()
         assert image_size in (128, 256, 512), 'image size must be one of 128, 256, or 512'
@@ -178,15 +187,16 @@ class Model(nn.Module):
         self.ema_decay\
             = ema_decay
 
-        self.init_latents()
+        self.init_latents(saved_latents_filepath)
 
-    def init_latents(self):
+    def init_latents(self, saved_latents_filepath):
         latents = Latents(
             num_latents = len(self.biggan.config.layers) + 1,
             num_classes = self.biggan.config.num_classes,
             z_dim = self.biggan.config.z_dim,
             max_classes = self.max_classes,
-            class_temperature = self.class_temperature
+            class_temperature = self.class_temperature,
+            saved_latents_filepath = saved_latents_filepath
         )
         self.latents = EMA(latents, self.ema_decay)
 
@@ -208,6 +218,7 @@ class BigSleep(nn.Module):
         experimental_resample = False,
         ema_decay = 0.99,
         center_bias = False,
+        saved_latents_filepath = None
     ):
         super().__init__()
         self.loss_coef = loss_coef
@@ -222,7 +233,8 @@ class BigSleep(nn.Module):
             image_size = image_size,
             max_classes = max_classes,
             class_temperature = class_temperature,
-            ema_decay = ema_decay
+            ema_decay = ema_decay,
+            saved_latents_filepath = saved_latents_filepath
         )
 
     def reset(self):
@@ -318,6 +330,8 @@ class Imagine(nn.Module):
         ema_decay = 0.99,
         num_cutouts = 128,
         center_bias = False,
+        save_latents = False,
+        saved_latents_filepath = None
     ):
         super().__init__()
 
@@ -325,6 +339,7 @@ class Imagine(nn.Module):
             assert not bilinear, 'the deterministic (seeded) operation does not work with interpolation (PyTorch 1.7.1)'
             torch.set_deterministic(True)
 
+        self.save_latents = save_latents
         self.seed = seed
         self.append_seed = append_seed
 
@@ -346,6 +361,7 @@ class Imagine(nn.Module):
             ema_decay = ema_decay,
             num_cutouts = num_cutouts,
             center_bias = center_bias,
+            saved_latents_filepath = saved_latents_filepath
         ).cuda()
 
         self.model = model
@@ -471,6 +487,11 @@ class Imagine(nn.Module):
                     total_iterations = epoch * self.iterations + i
                     num = total_iterations // self.save_every
                     save_image(image, Path(f'./{self.text_path}.{num}{self.seed_suffix}.png'))
+                    
+                    if self.save_latents:
+                        lats = self.model.model.latents
+                        lats.best = best # saving this just in case it might be useful
+                        torch.save(lats, Path(f'./{self.text_path}.{num}{self.seed_suffix}.pth'))
 
                 if self.save_best and top_score.item() < self.current_best_score:
                     self.current_best_score = top_score.item()
