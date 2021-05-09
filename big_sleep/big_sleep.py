@@ -214,7 +214,7 @@ class BigSleep(nn.Module):
         experimental_resample = False,
         ema_decay = 0.99,
         center_bias = False,
-        restore_latents_filename = None
+        restore_latents_filename = None,
     ):
         super().__init__()
         self.loss_coef = loss_coef
@@ -331,7 +331,8 @@ class Imagine(nn.Module):
         num_cutouts = 128,
         center_bias = False,
         save_latents = False,
-        restore_latents_filename = None
+        restore_latents_filename = None,
+        reset_optimizer = False,
     ):
         super().__init__()
 
@@ -369,7 +370,7 @@ class Imagine(nn.Module):
 
         self.lr = lr
 
-        if restore_latents_filename is None:
+        if restore_latents_filename is None or reset_optimizer:
             self.optimizer = Adam(model.model.latents.model.parameters(), lr)
         else:
             old_state_backup = dill.load(open(restore_latents_filename, "rb"))
@@ -485,19 +486,22 @@ class Imagine(nn.Module):
                 self.model.model.latents.train()
 
                 save_image(image, str(self.filename))
+                if self.save_latents:
+                    current_state_backup = CurrentStateBackup(self.model.model.latents, self.optimizer)
+                    latents_filename = Path(f'./{self.text_path}{self.seed_suffix}.backup')
+                    dill.dump(current_state_backup, file = open(latents_filename, "wb"))
+
                 if pbar is not None:
                     pbar.update(1)
                 else:
                     print(f'image updated at "./{str(self.filename)}"')
-
+                
                 if self.save_progress:
                     total_iterations = epoch * self.iterations + i
                     num = total_iterations // self.save_every
                     save_image(image, Path(f'./{self.text_path}.{num}{self.seed_suffix}.png'))
-
-                if self.save_latents:
-                    current_state_backup = CurrentStateBackup(self.model.model.latents, self.optimizer)
-                    dill.dump(current_state_backup, file = open(f'./{self.text_path}.{num}{self.seed_suffix}.backup', "wb"))
+                    if self.save_latents:
+                        dill.dump(current_state_backup, file = open(f'./{self.text_path}.{num}{self.seed_suffix}.backup', "wb"))
 
                 if self.save_best and top_score.item() < self.current_best_score:
                     self.current_best_score = top_score.item()
