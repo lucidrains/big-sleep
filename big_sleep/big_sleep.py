@@ -318,6 +318,7 @@ class Imagine(nn.Module):
         ema_decay = 0.99,
         num_cutouts = 128,
         center_bias = False,
+        save_dir = None ###
     ):
         super().__init__()
 
@@ -354,6 +355,7 @@ class Imagine(nn.Module):
         self.optimizer = Adam(model.model.latents.model.parameters(), lr)
         self.gradient_accumulate_every = gradient_accumulate_every
         self.save_every = save_every
+        self.save_dir = save_dir ###
 
         self.save_progress = save_progress
         self.save_date_time = save_date_time
@@ -432,7 +434,14 @@ class Imagine(nn.Module):
             text_path = datetime.now().strftime("%y%m%d-%H%M%S-") + text_path
 
         self.text_path = text_path
-        self.filename = Path(f'./{text_path}{self.seed_suffix}.png')
+        
+        ###
+        if self.save_dir is not None:
+            self.filename = Path(f'./{self.save_dir}/{text_path}{self.seed_suffix}.png')
+        else:
+            self.filename = Path(f'./{text_path}{self.seed_suffix}.png')
+        ###
+        
         self.encode_max_and_min(text, img=img, encoding=encoding, text_min=text_min) # Tokenize and encode each prompt
 
     def reset(self):
@@ -470,12 +479,22 @@ class Imagine(nn.Module):
                 if self.save_progress:
                     total_iterations = epoch * self.iterations + i
                     num = total_iterations // self.save_every
-                    save_image(image, Path(f'./{self.text_path}.{num}{self.seed_suffix}.png'))
-
+                ###
+                    if self.save_dir is not None:
+                        save_image(image, Path(f'./{self.save_dir}/{self.text_path}.{num}{self.seed_suffix}.png'))
+                    else:
+                        save_image(image, Path(f'./{self.text_path}.{num}{self.seed_suffix}.png'))
+                ###
+                
                 if self.save_best and top_score.item() < self.current_best_score:
                     self.current_best_score = top_score.item()
-                    save_image(image, Path(f'./{self.text_path}{self.seed_suffix}.best.png'))
-
+                ###
+                    if self.save_dir is not None:
+                        save_image(image, Path(f'./{save_dir}/{self.text_path}{self.seed_suffix}.png'))
+                    else:
+                        save_image(image, Path(f'./{self.text_path}{self.seed_suffix}.best.png'))
+                ###
+                
         return out, total_loss
 
     def forward(self):
