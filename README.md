@@ -46,15 +46,15 @@
 
 *demon fire* - by <a href="https://github.com/WiseNat">WiseNat</a>
 
-<img src="./samples/city_made_of_emerald.png" title="city made of emerald" />
+<img src="./samples/city_made_of_emerald.png" title="city made of emerald" /> <img src="./samples/city_made_of_emerald.9.png" title="city made of emerald" />
 
 *city made of emerald* by <a href="https://github.com/anomal">anomal</a>
 
-<img src="./samples/castle_made_of_ice.4.png" title="castle made of ice" />
+<img src="./samples/castle_made_of_ice.4.png" title="castle made of ice" /> <img src="./samples/castle_made_of_ice.5.png" title="castle made of ice" />
 
 *castle made of ice* by <a href="https://github.com/anomal">anomal</a>
 
-<img src="./samples/tardis_in_ancient_egypt.27.png" title="tardis in ancient egypt" />
+<img src="./samples/tardis_in_ancient_egypt.27.png" title="tardis in ancient egypt" /> <img src="./samples/tardis_in_ancient_egypt.3.png" title="tardis in ancient egypt" />
 
 *tardis in ancient egypt* by <a href="https://github.com/anomal">anomal</a>
 
