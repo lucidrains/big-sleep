@@ -48,10 +48,6 @@
 
 <img src="./samples/city_made_of_emerald.png" title="city made of emerald" />
 
-*city made of emerald* by <a href="https://github.com/anomal">anomal</a>
-
-<img src="./samples/city_made_of_emerald.png" title="city made of emerald" />
-
 *city made of emerald*, inspired by The Wizard of Oz, by <a href="https://github.com/anomal">anomal</a>
 
 <img src="./samples/castle_made_of_ice.4.png" title="castle made of ice" />
