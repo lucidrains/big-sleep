@@ -46,6 +46,22 @@
 
 *demon fire* - by <a href="https://github.com/WiseNat">WiseNat</a>
 
+<img src="./samples/city_made_of_emerald.png" title="city made of emerald" />
+
+*city made of emerald* by <a href="https://github.com/anomal">anomal</a>
+
+<img src="./samples/city_made_of_emerald.png" title="city made of emerald" />
+
+*city made of emerald*, inspired by The Wizard of Oz, by <a href="https://github.com/anomal">anomal</a>
+
+<img src="./samples/castle_made_of_ice.4.png" title="castle made of ice" />
+
+*castle made of ice*, inspired by Frozen, by <a href="https://github.com/anomal">anomal</a>
+
+<img src="./samples/tardis_in_ancient_egypt.27.png" title="tardis in ancient egypt" />
+
+*tardis in ancient egypt*, inspired by Doctor Who, by <a href="https://github.com/anomal">anomal</a>
+
 ## Big Sleep
 
 <a href="https://twitter.com/advadnoun">Ryan Murdock</a> has done it again, combining OpenAI's <a href="https://github.com/openai/CLIP">CLIP</a> and the generator from a <a href="https://arxiv.org/abs/1809.11096">BigGAN</a>! This repository wraps up his work so it is easily accessible to anyone who owns a GPU.
@@ -73,6 +89,10 @@ $ dream "a pyramid made of ice"
 ```
 
 Images will be saved to wherever the command is invoked
+
+### RuntimeError: CUDA out of memory
+
+Try `--num_cutouts 64` and/or `--image_size 256`.
 
 ## Advanced
 
