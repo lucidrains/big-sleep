@@ -168,7 +168,8 @@ class Model(nn.Module):
         image_size,
         max_classes = None,
         class_temperature = 2.,
-        ema_decay = 0.99
+        ema_decay = 0.99,
+        alpha = None
     ):
         super().__init__()
         assert image_size in (128, 256, 512), 'image size must be one of 128, 256, or 512'
@@ -177,23 +178,40 @@ class Model(nn.Module):
         self.class_temperature = class_temperature
         self.ema_decay\
             = ema_decay
+        
+        if alpha is None:
+            self.alpha = torch.ones((3, image_size, image_size))   
+        else:
+            self.alpha = alpha
 
         self.init_latents()
-
+    
     def init_latents(self):
-        latents = Latents(
+        latents1 = Latents(
             num_latents = len(self.biggan.config.layers) + 1,
             num_classes = self.biggan.config.num_classes,
             z_dim = self.biggan.config.z_dim,
             max_classes = self.max_classes,
             class_temperature = self.class_temperature
         )
-        self.latents = EMA(latents, self.ema_decay)
+        latents2 = Latents(
+            num_latents = len(self.biggan.config.layers) + 1,
+            num_classes = self.biggan.config.num_classes,
+            z_dim = self.biggan.config.z_dim,
+            max_classes = self.max_classes,
+            class_temperature = self.class_temperature
+        )
+        self.latents1 = EMA(latents1, self.ema_decay)
+        self.latents2 = EMA(latents2, self.ema_decay)
 
     def forward(self):
         self.biggan.eval()
-        out = self.biggan(*self.latents(), 1)
-        return (out + 1) / 2
+        bg = self.biggan(*self.latents1(), 1)
+        fg = self.biggan(*self.latents2(), 1)
+        
+        composite = (1 - self.alpha) * bg + self.alpha * fg
+        
+        return (bg + 1) / 2, (fg + 1) / 2, (composite + 1) / 2
 
 
 class BigSleep(nn.Module):
@@ -208,6 +226,7 @@ class BigSleep(nn.Module):
         experimental_resample = False,
         ema_decay = 0.99,
         center_bias = False,
+        alpha = None
     ):
         super().__init__()
         self.loss_coef = loss_coef
@@ -222,7 +241,8 @@ class BigSleep(nn.Module):
             image_size = image_size,
             max_classes = max_classes,
             class_temperature = class_temperature,
-            ema_decay = ema_decay
+            ema_decay = ema_decay,
+            alpha = alpha
         )
 
     def reset(self):
@@ -234,41 +254,62 @@ class BigSleep(nn.Module):
             sign = 1
         return sign * self.loss_coef * torch.cosine_similarity(text_embed, img_embed, dim = -1).mean()
 
-    def forward(self, text_embeds, text_min_embeds=[], return_loss = True):
+    ##
+    def forward(self, bg_text_embeds, text1_min_embeds=[], fg_text_embeds, text2_min_embeds=[], return_loss = True):
         width, num_cutouts = self.image_size, self.num_cutouts
 
-        out = self.model()
+        bg, fg, composite = self.model()
 
         if not return_loss:
-            return out
+            return bg, fg, composite
 
-        pieces = []
+        bg_pieces = []
+        comp_pieces = []
+        
         for ch in range(num_cutouts):
+            
             # sample cutout size
             size = int(width * torch.zeros(1,).normal_(mean=.8, std=.3).clip(.5, .95))
+            
             # get cutout
-            apper = rand_cutout(out, size, center_bias=self.center_bias)
+            bg_apper = rand_cutout(bg, size, center_bias=self.center_bias)
+            comp_apper = rand_cutout(composite, size, center_bias=self.center_bias)
+            
             if (self.experimental_resample):
-                apper = resample(apper, (224, 224))
+                bg_apper = resample(bg_apper, (224, 224))
+                comp_apper = resample(comp_apper, (224, 224))
+                
             else:
-                apper = F.interpolate(apper, (224, 224), **self.interpolation_settings)
-            pieces.append(apper)
+                bg_apper = F.interpolate(bg_apper, (224, 224), **self.interpolation_settings)
+                comp_apper = F.interpolate(comp_apper, (224, 224), **self.interpolation_settings)
+                
+            bg_pieces.append(bg_apper)
+            comp_pieces.append(comp_apper)
 
-        into = torch.cat(pieces)
-        into = normalize_image(into)
+        bg_into = torch.cat(bg_pieces)
+        bg_into = normalize_image(bg_into)
+        comp_into = torch.cat(comp_pieces)
+        comp_into = normalize_image(comp_into)
 
-        image_embed = perceptor.encode_image(into)
+        bg_image_embed = perceptor.encode_image(bg_into)
+        comp_image_embed = perceptor.encode_image(comp_into)
 
-        latents, soft_one_hot_classes = self.model.latents()
-        num_latents = latents.shape[0]
-        latent_thres = self.model.latents.model.thresh_lat
+        bg_latents, soft_one_hot_classes1 = self.model.latents1()
+        fg_latents, soft_one_hot_classes2 = self.model.latents2()
+        
+        num_latents = latents1.shape[0]
+        
+        bg_latent_thres = self.model.latents1.model.thresh_lat
+        fg_latent_thres = self.model.latents2.model.thresh_lat
 
-        lat_loss =  torch.abs(1 - torch.std(latents, dim=1)).mean() + \
-                    torch.abs(torch.mean(latents, dim = 1)).mean() + \
-                    4 * torch.max(torch.square(latents).mean(), latent_thres)
+        lat_loss1 =  torch.abs(1 - torch.std(bg_latents, dim=1)).mean() + \
+                     torch.abs(torch.mean(bg_latents, dim = 1)).mean() + \
+                     4 * torch.max(torch.square(bg_latents).mean(), bg_latent_thres)
+        lat_loss2 =  torch.abs(1 - torch.std(fg_latents, dim=1)).mean() + \
+                     torch.abs(torch.mean(fg_latents, dim = 1)).mean() + \
+                     4 * torch.max(torch.square(fg_latents).mean(), fg_latent_thres)
 
-
-        for array in latents:
+        for array in bg_latents:
             mean = torch.mean(array)
             diffs = array - mean
             var = torch.mean(torch.pow(diffs, 2.0))
@@ -277,24 +318,47 @@ class BigSleep(nn.Module):
             skews = torch.mean(torch.pow(zscores, 3.0))
             kurtoses = torch.mean(torch.pow(zscores, 4.0)) - 3.0
 
-            lat_loss = lat_loss + torch.abs(kurtoses) / num_latents + torch.abs(skews) / num_latents
+            lat_loss1 = lat_loss1 + torch.abs(kurtoses) / num_latents + torch.abs(skews) / num_latents
+         
+        for array in fg_latents:
+            mean = torch.mean(array)
+            diffs = array - mean
+            var = torch.mean(torch.pow(diffs, 2.0))
+            std = torch.pow(var, 0.5)
+            zscores = diffs / std
+            skews = torch.mean(torch.pow(zscores, 3.0))
+            kurtoses = torch.mean(torch.pow(zscores, 4.0)) - 3.0
 
-        cls_loss = ((50 * torch.topk(soft_one_hot_classes, largest = False, dim = 1, k = 999)[0]) ** 2).mean()
+            lat_loss2 = lat_loss2 + torch.abs(kurtoses) / num_latents + torch.abs(skews) / num_latents
 
-        results = []
-        for txt_embed in text_embeds:
-            results.append(self.sim_txt_to_img(txt_embed, image_embed))
-        for txt_min_embed in text_min_embeds:
-            results.append(self.sim_txt_to_img(txt_min_embed, image_embed, "min"))
-        sim_loss = sum(results).mean()
-        return out, (lat_loss, cls_loss, sim_loss)
+        cls_loss1 = ((50 * torch.topk(soft_one_hot_classes1, largest = False, dim = 1, k = 999)[0]) ** 2).mean()
+        cls_loss2 = ((50 * torch.topk(soft_one_hot_classes2, largest = False, dim = 1, k = 999)[0]) ** 2).mean()
 
+        results1 = []
+        results2 = []
+        
+        for bg_txt_embed in bg_text_embeds:
+            results1.append(self.sim_txt_to_img(bg_txt_embed, bg_image_embed))
+        for txt1_min_embed in text1_min_embeds:
+            results1.append(self.sim_txt_to_img(txt1_min_embed, bg_image_embed, "min"))
+        
+        for fg_txt_embed in fg_text_embeds:
+            results2.append(self.sim_txt_to_img(fg_txt_embed, comp_image_embed))
+        for txt2_min_embed in text2_min_embeds:
+            results2.append(self.sim_txt_to_img(txt2_min_embed, comp_image_embed, "min"))
+            
+        sim_loss1 = sum(results1).mean()
+        sim_loss2 = sum(results2).mean()
+        return bg, fg, composite, (lat_loss1, cls_loss1, sim_loss1, lat_loss2, cls_loss2, sim_loss2)
+    ##
 
 class Imagine(nn.Module):
     def __init__(
         self,
         *,
-        text=None,
+        bg_text=None,
+        fg_text=None,
+        alpha = None,
         img=None,
         encoding=None,
         text_min = "",
@@ -338,6 +402,7 @@ class Imagine(nn.Module):
         self.epochs = epochs
         self.iterations = iterations
 
+        ##
         model = BigSleep(
             image_size = image_size,
             bilinear = bilinear,
@@ -347,12 +412,18 @@ class Imagine(nn.Module):
             ema_decay = ema_decay,
             num_cutouts = num_cutouts,
             center_bias = center_bias,
+            alpha = alpha
         ).cuda()
-
+        ##
+        
         self.model = model
 
         self.lr = lr
-        self.optimizer = Adam(model.model.latents.model.parameters(), lr)
+        
+        ##
+        self.optimizer = Adam(list(model.model.latents1.model.parameters()) + list(model.model.latents2.model.parameters()), lr)
+        ##
+        
         self.gradient_accumulate_every = gradient_accumulate_every
         self.save_every = save_every
         self.save_dir = save_dir ###
@@ -367,13 +438,24 @@ class Imagine(nn.Module):
         self.total_image_updates = (self.epochs * self.iterations) / self.save_every
         self.encoded_texts = {
             "max": [],
-            "min": []
+            "min": [],
+            "bg": [],
+            "fg": []
         }
         # create img transform
         self.clip_transform = create_clip_img_transform(224)
         # create starting encoding
-        self.set_clip_encoding(text=text, img=img, encoding=encoding, text_min=text_min)
-    
+        
+        if self.save_dir is not None:
+            self.comp_filename = Path(f'./{self.save_dir}/"composite"{self.seed_suffix}.png')
+        else:
+            self.comp_filename = Path(f'./"composite"{self.seed_suffix}.png')
+            
+        ##
+        self.set_clip_encoding(text=bg_text, text_type = "bg")
+        self.set_clip_encoding(text=fg_text, text_type = "fg")
+        ##
+        
     @property
     def seed_suffix(self):
         return f'.{self.seed}' if self.append_seed and exists(self.seed) else ''
@@ -410,93 +492,130 @@ class Imagine(nn.Module):
             img_encoding = perceptor.encode_image(normed_img).detach()
         return img_encoding
     
-    
     def encode_multiple_phrases(self, text, img=None, encoding=None, text_type="max"):
         if text is not None and "|" in text:
             self.encoded_texts[text_type] = [self.create_clip_encoding(text=prompt_min, img=img, encoding=encoding) for prompt_min in text.split("|")]
         else:
             self.encoded_texts[text_type] = [self.create_clip_encoding(text=text, img=img, encoding=encoding)]
 
-    def encode_max_and_min(self, text, img=None, encoding=None, text_min=""):
-        self.encode_multiple_phrases(text, img=img, encoding=encoding)
+    def encode_max_and_min(self, text, img=None, encoding=None, text_min="", text_type):
+        self.encode_multiple_phrases(text, img=img, encoding=encoding, text_type)
         if text_min is not None and text_min != "":
             self.encode_multiple_phrases(text_min, img=img, encoding=encoding, text_type="min")
 
-    def set_clip_encoding(self, text=None, img=None, encoding=None, text_min=""):
+    def set_clip_encoding(self, text=None, img=None, encoding=None, text_min="", text_type):
         self.current_best_score = 0
         self.text = text
         self.text_min = text_min
         
         if len(text_min) > 0:
             text = text + "_wout_" + text_min[:255] if text is not None else "wout_" + text_min[:255]
+            
         text_path = create_text_path(text=text, img=img, encoding=encoding)
         if self.save_date_time:
             text_path = datetime.now().strftime("%y%m%d-%H%M%S-") + text_path
-
-        self.text_path = text_path
         
-        ###
-        if self.save_dir is not None:
-            self.filename = Path(f'./{self.save_dir}/{text_path}{self.seed_suffix}.png')
-        else:
-            self.filename = Path(f'./{text_path}{self.seed_suffix}.png')
-        ###
+        if text_type == "bg":
+            text_path = 'bg.' + text_path
+            self.bg_text_path = text_path
+            
+            if self.save_dir is not None:
+                self.bg_filename = Path(f'./{self.save_dir}/{text_path}{self.seed_suffix}.png')
+            else: 
+                self.bg_filename = Path(f'./{text_path}{self.seed_suffix}.png')
         
-        self.encode_max_and_min(text, img=img, encoding=encoding, text_min=text_min) # Tokenize and encode each prompt
+        else:  # text_type == "fg"
+            text_path = 'fg.' + text_path
+            self.fg_text_path = text_path
+            
+            if self.save_dir is not None:
+                self.fg_filename = Path(f'./{self.save_dir}/{text_path}{self.seed_suffix}.png')
+            else: 
+                self.fg_filename = Path(f'./{text_path}{self.seed_suffix}.png')
+        
+        self.encode_max_and_min(text, img=img, encoding=encoding, text_min=text_min, text_type=text_type) # Tokenize and encode each prompt
 
     def reset(self):
         self.model.reset()
         self.model = self.model.cuda()
-        self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
+        self.optimizer = Adam(list(self.model.model.latents1.parameters()) + list(model.model.latents2.model.parameters()), self.lr)
 
     def train_step(self, epoch, i, pbar=None):
         total_loss = 0
 
         for _ in range(self.gradient_accumulate_every):
-            out, losses = self.model(self.encoded_texts["max"], self.encoded_texts["min"])
+            bg, fg, composite, losses = self.model(bg_text_embeds=self.encoded_texts["bg"], fg_text_embeds=self.encoded_texts["fg"])
             loss = sum(losses) / self.gradient_accumulate_every
             total_loss += loss
             loss.backward()
 
         self.optimizer.step()
-        self.model.model.latents.update()
+        self.model.model.latents1.update()
+        self.model.model.latents2.update()
         self.optimizer.zero_grad()
 
         if (i + 1) % self.save_every == 0:
             with torch.no_grad():
                 self.model.model.latents.eval()
-                out, losses = self.model(self.encoded_texts["max"], self.encoded_texts["min"])
-                top_score, best = torch.topk(losses[2], k=1, largest=False)
-                image = self.model.model()[best].cpu()
-                self.model.model.latents.train()
+                bg, fg, composite, losses = self.model(self.encoded_texts["max"], self.encoded_texts["min"])
+                bg_top_score, bg_best = torch.topk(losses[2], k=1, largest=False)
+                fg_top_score, fg_best = torch.topk(losses[4], k=1, largest=False)
+                bg_image = bg[bg_best].cpu()
+                fg_image = fg[fg_best].cpu()
+                comp_image = composite[fg_best].cpu()
+                self.model.model.latents1.train()
+                self.model.model.latents2.train()
 
-                save_image(image, str(self.filename))
+                save_image(bg_image, str(self.bg_filename))
+                save_image(fg_image, str(self.fg_filename))
+                save_image(comp_image, str(self.comp_filename))
+                
                 if pbar is not None:
                     pbar.update(1)
                 else:
-                    print(f'image updated at "./{str(self.filename)}"')
+                    print(f'bg image updated at "./{str(self.bg_filename)}"')
+                    print(f'fg image updated at "./{str(self.fg_filename)}"')
+                    print(f'composite image updated at "./{str(self.comp_filename)}"')
+                
+#                 if self.save_dir is not None:
+#             self.comp_filename = Path(f'./{self.save_dir}/"composite"{self.seed_suffix}.png')
+#         else:
+#             self.comp_filename = Path(f'./"composite"{self.seed_suffix}.png')
+                
+#                 if self.save_dir is not None:
+#                 self.bg_filename = Path(f'./{self.save_dir}/{text_path}{self.seed_suffix}.png')
+#             else: 
+#                 self.bg_filename = Path(f'./{text_path}{self.seed_suffix}.png')
 
                 if self.save_progress:
                     total_iterations = epoch * self.iterations + i
                     num = total_iterations // self.save_every
-                ###
+    
                     if self.save_dir is not None:
-                        save_image(image, Path(f'./{self.save_dir}/{self.text_path}.{num}{self.seed_suffix}.png'))
+                        save_image(bg_image, Path(f'./{self.save_dir}/{self.bg_text_path}.{num}{self.seed_suffix}.png'))
+                        save_image(fg_image, Path(f'./{self.save_dir}/{self.fg_text_path}.{num}{self.seed_suffix}.png'))
+                        save_image(comp_image, Path(f'./{self.save_dir}/"composite".{num}{self.seed_suffix}.png'))
+                        
                     else:
-                        save_image(image, Path(f'./{self.text_path}.{num}{self.seed_suffix}.png'))
-                ###
+                        save_image(bg_image, Path(f'./{self.bg_text_path}.{num}{self.seed_suffix}.png'))
+                        save_image(fg_image, Path(f'./{self.fg_text_path}.{num}{self.seed_suffix}.png'))
+                        save_image(comp_image, Path(f'./"composite".{num}{self.seed_suffix}.png'))
                 
                 if self.save_best and top_score.item() < self.current_best_score:
                     self.current_best_score = top_score.item()
-                ###
-                    if self.save_dir is not None:
-                        save_image(image, Path(f'./{save_dir}/{self.text_path}{self.seed_suffix}.png'))
+    
+                                        if self.save_dir is not None:
+                        save_image(bg_image, Path(f'./{self.save_dir}/{self.bg_text_path}{self.seed_suffix}.png'))
+                        save_image(fg_image, Path(f'./{self.save_dir}/{self.fg_text_path}{self.seed_suffix}.png'))
+                        save_image(comp_image, Path(f'./{self.save_dir}/"composite"{self.seed_suffix}.png'))
+                        
                     else:
-                        save_image(image, Path(f'./{self.text_path}{self.seed_suffix}.best.png'))
-                ###
+                        save_image(bg_image, Path(f'./{self.bg_text_path}{self.seed_suffix}.png'))
+                        save_image(fg_image, Path(f'./{self.fg_text_path}{self.seed_suffix}.png'))
+                        save_image(comp_image, Path(f'./"composite"{self.seed_suffix}.png'))
                 
-        return out, total_loss
-
+        return bg, fg, composite, total_loss    
+        
     def forward(self):
         penalizing = ""
         if len(self.text_min) > 0:
@@ -515,9 +634,10 @@ class Imagine(nn.Module):
             pbar = trange(self.iterations, desc='   iteration', position=1, leave=True)
             image_pbar.update(0)
             for i in pbar:
-                out, loss = self.train_step(epoch, i, image_pbar)
+                bg, fg, composite, loss = self.train_step(epoch, i, image_pbar)
                 pbar.set_description(f'loss: {loss.item():04.2f}')
 
                 if terminate:
                     print('detecting keyboard interrupt, gracefully exiting')
                     return
+    ##
