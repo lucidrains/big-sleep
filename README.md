@@ -155,6 +155,14 @@ Due to the class conditioned nature of the GAN, Big Sleep often steers off the m
 $ dream "a room with a view of the ocean" --save-best
 ```
 
+## Larger model
+
+If you have enough memory, you can also try using a bigger vision model released by OpenAI for improved generations.
+
+```bash
+$ dream "storm clouds rolling in over a white barnyard" --larger-model
+```
+
 ## Experimentation
 
 You can set the number of classes that you wish to restrict Big Sleep to use for the Big GAN with the `--max-classes` flag as follows (ex. 15 classes). This may lead to extra stability during training, at the cost of lost expressivity.
