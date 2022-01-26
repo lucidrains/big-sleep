@@ -56,6 +56,9 @@ Original notebook [![Open In Colab][colab-badge]][colab-notebook]
 
 Simplified notebook [![Open In Colab][colab-badge]][colab-notebook-2]
 
+User-made notebook with bugfixes and added features, like google drive integration [![Open In Colab][colab-badge]][user-made-colab-notebook]
+
+[user-made-colab-notebook]: <https://colab.research.google.com/drive/1zVHK4t3nXQTsu5AskOOOf3Mc9TnhltUO?usp=sharing>
 [colab-notebook]: <https://colab.research.google.com/drive/1NCceX2mbiKOSlAd_o7IU7nA9UskKN5WR?usp=sharing>
 [colab-notebook-2]: <https://colab.research.google.com/drive/1MEWKbm-driRNF8PrU7ogS5o3se-ePyPb?usp=sharing>
 [colab-badge]: <https://colab.research.google.com/assets/colab-badge.svg>
