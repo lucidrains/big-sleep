@@ -30,6 +30,7 @@ assert torch.cuda.is_available(), 'CUDA must be available in order to use Big Sl
 terminate = False
 
 def signal_handling(signum,frame):
+    print('detecting keyboard interrupt, gracefully exiting')
     global terminate
     terminate = True
 
@@ -494,13 +495,11 @@ class Imagine(nn.Module):
             self.open_folder = False
 
         image_pbar = tqdm(total=self.total_image_updates, desc='image update', position=2, leave=True)
-        for epoch in trange(self.epochs, desc = '      epochs', position=0, leave=True):
+        epoch_pbar = trange(self.epochs, desc = '      epochs', position=0, leave=True)
+        for epoch in (ep for ep in epoch_pbar if not terminate):
             pbar = trange(self.iterations, desc='   iteration', position=1, leave=True)
             image_pbar.update(0)
-            for i in pbar:
+            for i in (it for it in pbar if not terminate):
                 out, loss = self.train_step(epoch, i, image_pbar)
                 pbar.set_description(f'loss: {loss.item():04.2f}')
 
-                if terminate:
-                    print('detecting keyboard interrupt, gracefully exiting')
-                    return
