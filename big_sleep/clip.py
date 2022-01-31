@@ -1,20 +1,17 @@
-from collections import OrderedDict
-from typing import Tuple, Union
-
-import torch
-import torch.nn.functional as F
-from torch import nn
-from pathlib import Path
-
 import hashlib
 import os
 import urllib
 import warnings
-from typing import Union, List
+from collections import OrderedDict
+from pathlib import Path
+from typing import List, Tuple, Union
 
 import torch
+import torch.nn.functional as F
 from PIL import Image
-from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
+from torch import nn
+from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
+                                    ToTensor)
 from tqdm import tqdm
 
 _MODELS = {

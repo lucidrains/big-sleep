@@ -1,6 +1,8 @@
-import time
 import shutil
+import time
+
 import torch
+
 from big_sleep import Imagine
 
 terminate = False
