@@ -178,10 +178,6 @@ $ dream 'a single flower in a withered field' --max-classes 15
 
 <a href="https://github.com/lucidrains/deep-daze">Deep Daze</a> - CLIP and a deep SIREN network
 
-## Used By
-
-- <a href="https://dank.xyz/">Dank.xyz</a>
-
 ## Citations
 
 ```bibtex
