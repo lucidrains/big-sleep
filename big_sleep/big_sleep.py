@@ -8,6 +8,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 import random
+import gc
 
 import torch
 import torch.nn.functional as F
@@ -216,7 +217,8 @@ class BigSleep(nn.Module):
 
         self.interpolation_settings = {'mode': 'bilinear', 'align_corners': False} if bilinear else {'mode': 'nearest'}
 
-        model_name = 'ViT-B/32' if not larger_clip else 'ViT-L/14'
+        # model_name = 'ViT-B/32' if not larger_clip else 'ViT-L/14'
+        model_name = 'RN50'
         self.perceptor, self.normalize_image = load(model_name, jit = False)
 
         self.model = Model(
@@ -446,24 +448,36 @@ class Imagine(nn.Module):
     def train_step(self, epoch, i, pbar=None):
         total_loss = 0
 
+        self.model = self.model.to(dtype=torch.float16)
+        torch.cuda.empty_cache()
+
         for _ in range(self.gradient_accumulate_every):
             out, losses = self.model(self.encoded_texts["max"], self.encoded_texts["min"])
             loss = sum(losses) / self.gradient_accumulate_every
             total_loss += loss
             loss.backward()
 
+        gc.collect()
+        torch.cuda.empty_cache()
+        self.model = self.model.to(dtype=torch.float32)
+        gc.collect()
+        torch.cuda.empty_cache()
         self.optimizer.step()
         self.model.model.latents.update()
         self.optimizer.zero_grad()
 
         if (i + 1) % self.save_every == 0:
             with torch.no_grad():
+                self.model = self.model.to(dtype=torch.float16)
+                torch.cuda.empty_cache()
                 self.model.model.latents.eval()
                 out, losses = self.model(self.encoded_texts["max"], self.encoded_texts["min"])
                 top_score, best = torch.topk(losses[2], k=1, largest=False)
                 image = self.model.model()[best].cpu()
                 self.model.model.latents.train()
 
+                image = image.to(dtype=torch.float32)
+                torch.cuda.empty_cache()
                 save_image(image, str(self.filename))
                 if pbar is not None:
                     pbar.update(1)
