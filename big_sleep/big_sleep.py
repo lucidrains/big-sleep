@@ -321,7 +321,9 @@ class Imagine(nn.Module):
         ema_decay = 0.99,
         num_cutouts = 128,
         center_bias = False,
-        larger_clip = False
+        larger_clip = False,
+        half_precision = False,
+        image_folder=None,
     ):
         super().__init__()
 
@@ -352,8 +354,18 @@ class Imagine(nn.Module):
             center_bias = center_bias,
             larger_clip = larger_clip
         ).cuda()
-
+        
+        if half_precision:
+            self.half = half_precision
+            model = model.to(dtype=torch.float16)
+        
         self.model = model
+
+        if image_folder:
+            os.makedirs(image_folder, exist_ok=True)
+        else:
+            image_folder = '.'
+        self.folder = image_folder
 
         self.lr = lr
         self.optimizer = Adam(model.model.latents.model.parameters(), lr)
@@ -437,7 +449,7 @@ class Imagine(nn.Module):
             text_path = datetime.now().strftime("%y%m%d-%H%M%S-") + text_path
 
         self.text_path = text_path
-        self.filename = Path(f'./{text_path}{self.seed_suffix}.png')
+        self.filename = Path(f'{self.folder}/{text_path}{self.seed_suffix}.png')
         self.encode_max_and_min(text, img=img, encoding=encoding, text_min=text_min) # Tokenize and encode each prompt
 
     def reset(self):
@@ -446,10 +458,11 @@ class Imagine(nn.Module):
         self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
 
     def train_step(self, epoch, i, pbar=None):
-        total_loss = 0
+        total_loss = 0.0
 
-        self.model = self.model.to(dtype=torch.float16)
-        torch.cuda.empty_cache()
+        if self.half:
+            self.model = self.model.to(dtype=torch.float16)
+            torch.cuda.empty_cache()
 
         for _ in range(self.gradient_accumulate_every):
             out, losses = self.model(self.encoded_texts["max"], self.encoded_texts["min"])
@@ -457,27 +470,32 @@ class Imagine(nn.Module):
             total_loss += loss
             loss.backward()
 
-        gc.collect()
-        torch.cuda.empty_cache()
-        self.model = self.model.to(dtype=torch.float32)
-        gc.collect()
-        torch.cuda.empty_cache()
+        if self.half:
+            gc.collect()
+            torch.cuda.empty_cache()
+            self.model = self.model.to(dtype=torch.float32)
+            gc.collect()
+            torch.cuda.empty_cache()
+
         self.optimizer.step()
         self.model.model.latents.update()
         self.optimizer.zero_grad()
 
         if (i + 1) % self.save_every == 0:
             with torch.no_grad():
-                self.model = self.model.to(dtype=torch.float16)
-                torch.cuda.empty_cache()
+                if self.half:
+                    self.model = self.model.to(dtype=torch.float16)
+                    torch.cuda.empty_cache()
                 self.model.model.latents.eval()
                 out, losses = self.model(self.encoded_texts["max"], self.encoded_texts["min"])
                 top_score, best = torch.topk(losses[2], k=1, largest=False)
                 image = self.model.model()[best].cpu()
                 self.model.model.latents.train()
 
-                image = image.to(dtype=torch.float32)
-                torch.cuda.empty_cache()
+                if self.half:
+                    image = image.to(dtype=torch.float32)
+                    torch.cuda.empty_cache()
+
                 save_image(image, str(self.filename))
                 if pbar is not None:
                     pbar.update(1)
