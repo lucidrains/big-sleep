@@ -11,6 +11,7 @@ setup(
   entry_points={
     'console_scripts': [
       'dream = big_sleep.cli:main',
+      'dream_finetune = big_sleep.finetune:main',
     ],
   },
   version = __version__,
