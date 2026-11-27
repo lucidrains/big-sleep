@@ -166,6 +166,17 @@ If you have enough memory, you can also try using a bigger vision model released
 $ dream "storm clouds rolling in over a white barnyard" --larger-model
 ```
 
+## Fine-tune on your own photos
+
+Teach BigGAN a new class (for example yourself) from a folder of photos, then use `<me>` in a prompt. Around 20-50 photos with consistent framing (e.g. head and shoulders) work best; photos are center-cropped to a square. Training takes about 10 minutes and under 3GB of GPU memory at 256px.
+
+```bash
+$ dream_finetune --images ./my_photos --out ./me_model
+$ dream "<me> as an astronaut on mars" --model ./me_model --image_size 256 --epochs 2
+```
+
+The original 1000 ImageNet classes are kept; your photos become class 1001 in a separate model folder. By default the generator weights are fine-tuned too. Pass `--tune_generator False` to only learn the new class (weaker likeness, other prompts unchanged). Check `preview_class.png` and `preview_generator.png` in the model folder: rows are your photos, their reconstructions, and random samples of the new class. `--class_steps` and `--generator_steps` control training length.
+
 ## Experimentation
 
 You can set the number of classes that you wish to restrict Big Sleep to use for the Big GAN with the `--max-classes` flag as follows (ex. 15 classes). This may lead to extra stability during training, at the cost of lost expressivity.
