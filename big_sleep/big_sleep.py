@@ -29,6 +29,11 @@ assert torch.cuda.is_available(), 'CUDA must be available in order to use Big Sl
 
 terminate = False
 
+# fine-tuned person models (see finetune.py)
+
+TRIGGER = '<me>'
+PERSON_FILE = 'person.pt'
+
 def signal_handling(signum,frame):
     print('detecting keyboard interrupt, gracefully exiting')
     global terminate
@@ -79,6 +84,7 @@ def create_text_path(text=None, img=None, encoding=None):
         input_name += "_" + img_name
     if encoding is not None:
         input_name = "your_encoding"
+    input_name = re.sub(r'[<>:"\?*]', '', input_name) # characters Windows forbids in filenames, e.g. the <me> trigger
     return input_name.replace("-", "_").replace(",", "").replace(" ", "_").replace("|", "--").strip('-_')[:255]
 
 # tensor helpers
@@ -165,11 +171,15 @@ class Model(nn.Module):
         image_size,
         max_classes = None,
         class_temperature = 2.,
-        ema_decay = 0.99
+        ema_decay = 0.99,
+        model_path = None
     ):
         super().__init__()
         assert image_size in (128, 256, 512), 'image size must be one of 128, 256, or 512'
-        self.biggan = BigGAN.from_pretrained(f'biggan-deep-{image_size}')
+        self.biggan = BigGAN.from_pretrained(model_path or f'biggan-deep-{image_size}')
+        model_size = self.biggan.config.output_dim
+        assert model_size == image_size, f'the model at {model_path} generates {model_size}px images, pass --image_size {model_size}'
+        self.force_class = None # class index kept fully on, e.g. the fine-tuned person when <me> is prompted
         self.max_classes = max_classes
         self.class_temperature = class_temperature
         self.ema_decay\
@@ -187,9 +197,15 @@ class Model(nn.Module):
         )
         self.latents = EMA(latents, self.ema_decay)
 
+    def get_latents(self):
+        normu, classes = self.latents()
+        if exists(self.force_class):
+            classes = classes.index_fill(1, torch.tensor([self.force_class], device = classes.device), 1.)
+        return normu, classes
+
     def forward(self):
         self.biggan.eval()
-        out = self.biggan(*self.latents(), 1)
+        out = self.biggan(*self.get_latents(), 1)
         return (out + 1) / 2
 
 
@@ -205,7 +221,8 @@ class BigSleep(nn.Module):
         experimental_resample = False,
         ema_decay = 0.99,
         center_bias = False,
-        larger_clip = False
+        larger_clip = False,
+        model_path = None
     ):
         super().__init__()
         self.loss_coef = loss_coef
@@ -223,7 +240,8 @@ class BigSleep(nn.Module):
             image_size = image_size,
             max_classes = max_classes,
             class_temperature = class_temperature,
-            ema_decay = ema_decay
+            ema_decay = ema_decay,
+            model_path = model_path
         )
 
     def reset(self):
@@ -260,7 +278,7 @@ class BigSleep(nn.Module):
 
         image_embed = self.perceptor.encode_image(into)
 
-        latents, soft_one_hot_classes = self.model.latents()
+        latents, soft_one_hot_classes = self.model.get_latents()
         num_latents = latents.shape[0]
         latent_thres = self.model.latents.model.thresh_lat
 
@@ -280,7 +298,12 @@ class BigSleep(nn.Module):
 
             lat_loss = lat_loss + torch.abs(kurtoses) / num_latents + torch.abs(skews) / num_latents
 
-        cls_loss = ((50 * torch.topk(soft_one_hot_classes, largest = False, dim = 1, k = 999)[0]) ** 2).mean()
+        force = self.model.force_class
+        if exists(force):
+            # the forced class is always on; still let one other class shape the scene
+            soft_one_hot_classes = torch.cat((soft_one_hot_classes[:, :force], soft_one_hot_classes[:, force + 1:]), dim = 1)
+        num_penalized = soft_one_hot_classes.shape[1] - 1
+        cls_loss = ((50 * torch.topk(soft_one_hot_classes, largest = False, dim = 1, k = num_penalized)[0]) ** 2).mean()
 
         results = []
         for txt_embed in text_embeds:
@@ -319,7 +342,8 @@ class Imagine(nn.Module):
         ema_decay = 0.99,
         num_cutouts = 128,
         center_bias = False,
-        larger_clip = False
+        larger_clip = False,
+        model_path = None
     ):
         super().__init__()
 
@@ -348,10 +372,17 @@ class Imagine(nn.Module):
             ema_decay = ema_decay,
             num_cutouts = num_cutouts,
             center_bias = center_bias,
-            larger_clip = larger_clip
+            larger_clip = larger_clip,
+            model_path = model_path
         ).cuda()
 
         self.model = model
+
+        self.person = None
+        if exists(model_path) and (Path(model_path) / PERSON_FILE).exists():
+            self.person = torch.load(Path(model_path) / PERSON_FILE)
+            # shortcut: person embedding is only stored for ViT-B/32, re-run dream_finetune with the larger CLIP if that is ever needed
+            assert not larger_clip, f'{model_path} was fine-tuned with ViT-B/32, larger_model is not supported for it'
 
         self.lr = lr
         self.optimizer = Adam(model.model.latents.model.parameters(), lr)
@@ -398,6 +429,10 @@ class Imagine(nn.Module):
         return encoding
 
     def create_text_encoding(self, text):
+        if exists(self.person) and TRIGGER in text:
+            text_encoding = self.create_text_encoding(text.replace(TRIGGER, 'a person'))
+            person_encoding = self.person['clip_embedding'].to(text_encoding)
+            return (F.normalize(text_encoding, dim = -1) + F.normalize(person_encoding, dim = -1)) / 2
         tokenized_text = tokenize(text).cuda()
         with torch.no_grad():
             text_encoding = self.model.perceptor.encode_text(tokenized_text).detach()
@@ -435,6 +470,8 @@ class Imagine(nn.Module):
             text_path = datetime.now().strftime("%y%m%d-%H%M%S-") + text_path
 
         self.text_path = text_path
+        uses_person = exists(self.person) and exists(text) and TRIGGER in text
+        self.model.model.force_class = self.person['class_index'] if uses_person else None
         self.filename = Path(f'./{text_path}{self.seed_suffix}.png')
         self.encode_max_and_min(text, img=img, encoding=encoding, text_min=text_min) # Tokenize and encode each prompt
 
